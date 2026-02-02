@@ -1,0 +1,6 @@
+<details class="toggle">
+  <summary>{{ .Get "title" | default "Details" }}</summary>
+  <div class="toggle-content">
+    {{ .Inner | markdownify }}
+  </div>
+</details>
