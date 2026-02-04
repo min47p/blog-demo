@@ -33,8 +33,8 @@ title = 'My Blog'
       unsafe = false
 
 [params]
-  description = 'A personal blog about mathematics, engineering, computer science, and physics.'
-  author = 'Author'
+  description = 'A blog.'
+  author = 'min47p'
   katexVersion = '0.16'
 
 [menus]
