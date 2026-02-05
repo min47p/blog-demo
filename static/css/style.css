@@ -143,6 +143,9 @@ a:hover { color: var(--color-accent-hover); text-decoration: underline; }
 
   .content-area { padding: 1rem; }
   main.container { padding: 1.5rem; }
+
+  .post-content { padding-right: 2.5rem; }
+  .katex-display::after { right: -2rem; font-size: 0.85rem; }
 }
 
 /* === Main Content === */
@@ -332,8 +335,58 @@ details.toggle .toggle-content p:last-child { margin-bottom: 0; }
 
 /* === Math === */
 .math-block {
-  overflow-x: auto;
+  overflow: visible;
   margin: 1.25rem 0;
+}
+
+.post-content {
+  counter-reset: equation;
+  padding-right: 3.5rem;
+}
+
+.katex-display {
+  position: relative;
+  overflow: visible !important;
+  counter-increment: equation;
+}
+
+.katex-display > .katex {
+  display: block;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.katex-display::after {
+  content: "(" counter(equation) ")";
+  position: absolute;
+  right: -3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.callout .katex-display::after {
+  right: calc(-3rem - 1rem);
+}
+
+.eq-label {
+  display: block;
+  position: relative;
+  top: -2rem;
+  visibility: hidden;
+  height: 0;
+}
+
+a.eq-ref {
+  text-decoration: none;
+  color: var(--color-accent);
+}
+
+a.eq-ref:hover {
+  text-decoration: underline;
 }
 
 /* === Footer === */

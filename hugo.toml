@@ -30,7 +30,7 @@ title = 'My Blog'
           inline = [['$', '$'], ['\(', '\)']]
 
     [markup.goldmark.renderer]
-      unsafe = false
+      unsafe = true
 
 [params]
   description = 'A blog.'

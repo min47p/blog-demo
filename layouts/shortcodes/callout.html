@@ -1,6 +1,6 @@
 <div class="callout callout-{{ .Get "type" | default "note" }}">
   <div class="callout-title">{{ .Get "type" | default "note" }}</div>
   <div class="callout-body">
-    {{ .Inner | markdownify }}
+    {{ .Inner | .Page.RenderString }}
   </div>
 </div>
