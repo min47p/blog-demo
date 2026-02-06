@@ -10,6 +10,11 @@ title = 'My Blog'
     noClasses = false
     lineNos = true
 
+  [markup.tableOfContents]
+    startLevel = 1
+    endLevel = 2
+    ordered = false
+
   [markup.goldmark]
     [markup.goldmark.extensions]
       footnote = true
