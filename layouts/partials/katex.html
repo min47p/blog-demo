@@ -1,4 +1,4 @@
-{{ if .Params.math }}
+{{ if ne .Params.math false }}
 {{ $v := .Site.Params.katexVersion | default "0.16" }}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@{{ $v }}/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@{{ $v }}/dist/katex.min.js"></script>

@@ -2,7 +2,6 @@
 title: "Hello World: A Tour of Blog Features"
 date: 2026-02-02
 tags: ["mathematics", "demo"]
-math: true
 description: "A sample post demonstrating math rendering, callout boxes, toggle sections, references, and code blocks."
 ---
 

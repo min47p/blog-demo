@@ -2,7 +2,6 @@
 title: "Generative Models - 01. Overview"
 date: 2026-02-03
 tags: ["machine-learning", "generative-models"]
-math: true
 ---
 
 ## 생성 모델로 풀고 싶은 문제
@@ -64,11 +63,7 @@ $$p(\mathbf{x}_{i}) = \frac{1}{N} \; , \qquad i = 1, \cdots , N$$
 
 위의 예시를 통해, 아무런 제약 없이 $p$를 찾으면 원하지 않는 결과가 나올 수 있다는 것을 알 수 있다. 따라서 $p$가 가질 수 있는 형태를 미리 제한할 필요가 있다. 이를 위해 매개변수(parameter) $\phi$를 도입하여, $\phi$의 값에 따라 밀도함수의 형태가 결정되도록 하자. 이렇게 매개화된 확률 분포를 $p_{\phi}$로 표기한다. 이제 우리의 목표는 $p_{\phi}$가 $p_{\mathrm{data}}$에 최대한 가까워지도록 하는 $\phi$를 찾는 것이 된다. $p$의 형태에 제한을 두었기 때문에, 이렇게 찾은 $p_{\phi}$는 $p_{\mathrm{data}}$의 형태를 충분히 표현하지 못할 수도 있다. 하지만 우리가 허용한 형태 중 실제 데이터를 가장 잘 설명하는 분포를 찾은 것이기 때문에, 충분히 유용하다.
 
-{{< callout type="Note" >}}
-매개화된 확률 분포의 대표적인 예시는 정규분포이다. 다음은 $\phi = (\mu, \Sigma)$를 매개변수로 갖는 $d$차원 정규분포의 밀도함수이다.
-
-$$p_{\phi}(\mathbf{x}) = \frac{1}{(2\pi)^{d/2} |\Sigma|^{1/2}} \exp\left( -\frac{1}{2} (\mathbf{x} - \mu)^{\top} \Sigma^{-1} (\mathbf{x} - \mu) \right)$$
-{{< /callout >}}
+딥러닝에서는 주로 인공 신경망으로 매개화된 확률 분포를 구현한다. 이때 신경망의 **가중치**가 확률 분포의 매개변수가 된다.
 
 ### Maximum Likelihood Estimation
 
@@ -226,16 +221,18 @@ $$D_{\mathrm{KL}}(p_{\phi} \| p_{\mathrm{data}}) = \mathbb{E}_{\mathbf{x} \sim p
 
 정리하면, 최적화 문제를 풀기 위해서는 목적 함수 $J(\phi)$가 $\phi$에 대해 미분해 $\nabla_{\phi} J(\phi)$를 구할 수 있어야 한다. 만약 $\nabla_{\phi} J(\phi)$에 기댓값이 있다면 몬테 카를로 근사를 적용할 수 있어야 한다.
 
-## 확률 분포 $p_{\phi}$를 어떻게 모델링해야 하는가?
+## 확률 분포 $p_{\phi}$를 어떻게 구현해야 하는가?
 
-아직 $p_{\phi}$가 어떤 형태의 분포인지에 대해서는 구체적으로 이야기하지 않았다. $p_{\phi}$를 설계할 때 고려해야 할 점은 다음과 같다.
+아직 $p_{\phi}$가 어떤 형태의 분포인지에 대해서는 구체적으로 이야기하지 않았다. $p_{\phi}$를 구현할 때 고려해야 할 점은 다음과 같다.
 
 1. **표현력**: $p_{\phi}$는 복잡한 실제 분포 $p_{\mathrm{data}}$를 충분히 근사할 수 있을 만큼 다양한 형태의 분포를 표현할 수 있어야 한다.
 2. **정규화**: $p_{\phi}$는 유효한 확률 분포여야 하므로, $\int p_{\phi}(\mathbf{x}) \, d\mathbf{x} = 1$을 만족해야 한다.
 3. **학습 가능성**: 최적화 문제를 풀 수 있어야 한다. 앞 절에서 이야기한 것처럼 $p_{\phi}(\mathbf{x})$를 포함하는 목적 함수 $J(\phi)$를 미분해 $\nabla_{\phi} J(\phi)$를 구할 수 있어야 하고, 여기에 기댓값이 있는 경우 몬테 카를로 근사를 적용할 수 있어야 한다.
 4. **샘플링 가능성**: $p_{\phi}$로부터 $\mathbf{x}$를 효율적으로 샘플링할 수 있어야 한다.
 
-이 네 가지 조건을 동시에 만족하는 것은 쉽지 않다. 하나의 조건이 다른 조건과 상충되는 경우가 많기 때문이다. 두 번째 조건인 정규화와 네 번째 조건인 샘플링에 대해 조금 더 살펴보자.
+이 네 가지 조건을 동시에 만족하는 것은 쉽지 않다. 하나의 조건이 다른 조건과 상충되는 경우가 많기 때문이다. 먼저 두 번째 조건인 정규화와 네 번째 조건인 샘플링 가능성에 대해 조금 더 살펴보자.
+
+### 정규화와 샘플링의 어려움
 
 **정규화**는 확률 분포라면 당연히 만족해야 하는 조건이지만, 복잡하면서 정규화 조건을 만족하는 분포를 만들기가 쉽지 않다. 기계 학습에서는 복잡한 함수를 만들기 위해 인공 신경망(neural network)를 활용하는데, 인공 신경망으로 정규화된 확률 분포 $p_{\phi}(\mathbf{x})$를 만드려고 시도해 보자. 먼저 $\mathbf{x}$를 입력으로 받아 실수를 내놓는 신경망 $f_{\phi}(\mathbf{x})$를 생각할 수 있다. 여기에서 매개변수 $\phi$는 신경망의 가중치 역할을 한다. 밀도함수가 되기 위해서는 음이 아닌 값이 되어야 하므로, $\exp$를 씌워 $\exp (f_{\phi}(\mathbf{x}))$로 만들자. 다음으로 정규화 조건을 만족하도록 하기 위해, 어떤 상수 $C$를 곱하자. 그럼 $C$의 값은 다음과 같이 정해진다.
 $$
@@ -253,10 +250,134 @@ $p_{\phi}(\mathbf{x})$를 잘 정의하기는 했지만, 이것을 실제로 계
 앞의 식 {{< eqref expectation-integral >}}의 복잡한 적분은 몬테 카를로로 잘 근사하지 않았나? 라는 의문이 들 수 있다. 하지만 식 {{< eqref expectation-integral >}}의 적분은 확률 분포 $p(\mathbf{x})$에 대한 기댓값이고, $p(\mathbf{x})$에서 샘플링이 가능했기 때문에 몬테 카를로 근사를 적용할 수 있었다. 반면 정규화 상수의 적분 $\int \exp(f_{\phi}(\mathbf{x})) \, d\mathbf{x}$는 우리가 샘플링할 수 있는 확률 분포에 대한 기댓값으로 자연스럽게 표현되지 않으므로, 몬테 카를로 근사를 직접 적용할 수 없다.
 {{< /callout >}}
 
-
 어떻게 해서 정규화 조건을 만족하면서 학습도 가능한 확률 분포 $p_{\phi}$를 얻었다고 치자. 그래도 여전히 **샘플링 가능성**이라는 네 번째 조건이 문제가 된다. 어떤 분포의 밀도 함수를 알고 있다고 해서 바로 그 분포에서 샘플링할 수 있는 것은 아니다. 밀도 함수 $p_{\phi}(\mathbf{x})$를 특정 점 $\mathbf{x}$에서 계산하는 것은 국소적인 연산이지만, 샘플링은 확률 밀도가 전체 공간에서 어떻게 분포하는지를 파악해야 하는 전역적인 문제이기 때문이다.
 
-결국 생성 모델의 핵심 과제는 정규화와 샘플링이다. 여러 가지 생성 모델들은 이 두 문제를 다양한 접근 방식으로 해결하며, 필요에 따라 일부를 포기하기도 한다. 구체적인 생성 모델들을 알아보기 전에, 몇 가지 중요한 아이디어를 살펴보자.
+### 단순한 분포
+
+이제는 반대로 정규화와 샘플링이 쉽지만 표현력이 부족한 '단순한 분포'를 살펴보자.
+
+먼저 연속 분포를 살펴보자. 가장 기본적인 연속 분포는 **단일 변수 균등 분포(uniform distribution)** 이다. 균등 분포 $\mathcal{U}(a, b)$는 두 실수 $a$와 $b$ 사이의 모든 값이 같은 밀도를 갖는 분포이다. 밀도함수는 다음과 같다.
+
+$$p(x) = \frac{1}{b - a} \quad, \quad a \leq x \leq b$$
+
+균등 분포는 사실상 컴퓨터로 직접 만들 수 있는 유일한 연속 분포이다. 컴퓨터에서 제공하는 유사 난수 생성기(pseudo random number generator)는 $\mathcal{U}(0, 1)$에서 샘플링을 수행할 수 있다. 다른 모든 분포는 이 균등 분포를 변환해서 얻어야 한다.
+
+다음으로, **단일 변수 표준 정규 분포(standard normal distribution)** 가 있다. 밀도함수는 다음과 같다.
+
+{{< eqlabel standard-normal >}}
+$$p(x) = \frac{1}{\sqrt{2\pi}} \exp\left( -\frac{x^2}{2} \right)$$
+
+표준 정규 분포에서 샘플링하는 방법을 알아보자. 첫 번째 방법은 역변환 샘플링(inverse transform sampling)이다. 누적 분포 함수(CDF)의 역함수를 이용하는 방법인데, 실제로는 잘 사용하지 않는다. 자세한 설명은 아래 남긴다.
+
+{{< toggle title="Inverse transform sampling" >}}
+Inverse transform sampling은 어떠한 단일 변수의 확률 분포에도 적용할 수 있는 방법이다. 균등 확률 변수를 우리가 원하는 분포를 가진 확률 변수로 변환할 수 있게 해 준다.
+
+확률 변수 $X$의 누적 분포 함수를 $F(x) = P(X \leq x)$라고 하자. $U \sim \mathcal{U}(0, 1)$일 때, $X = F^{-1}(U)$로 정의하면 $X$는 CDF가 $F$인 분포를 따른다. 증명은 다음과 같다.
+$$P(X \leq x) = P(F^{-1}(U) \leq x) = P(U \leq F(x)) = F(x)$$
+마지막 등호는 $F(x)$가 $0$과 $1$ 사이의 값을 가지고 $U$가 $\mathcal{U}(0, 1)$을 따르기 때문에 성립한다.
+
+따라서 $\mathcal{U}(0, 1)$으로부터 $u$를 샘플링한 뒤 $x = F^{-1}(u)$를 계산하면 된다.
+
+이 방법이 표준 정규 분포에 잘 사용되지 않는 이유는 표준 정규 분포의 CDF인 $\Phi(x) = \int_{-\infty}^{x} \frac{1}{\sqrt{2\pi}} e^{-t^2/2} \, dt$가 닫힌 형태로 표현되지 않아, $\Phi^{-1}(u)$를 계산하기 어렵기 때문이다.
+
+참고로, inverse transform sampling을 다변수로 확장하기는 매우 어렵다. 다차원 변수의 CDF를 구하기 위해 복잡한 적분이 필요하기 때문이다.
+{{< /toggle >}}
+
+실용적인 방법 중 가장 간단한 것은 Box-Muller method이다. $u_{1}, u_{2} \sim \mathcal{U}(0, 1)$을 독립적으로 샘플링한 뒤, 다음과 같이 변환하면 $z_{1}, z_{2}$는 독립적인 표준 정규 분포를 따른다.
+
+$$z_{1} = \sqrt{-2 \ln u_{1}} \cos(2\pi u_{2}), \qquad z_{2} = \sqrt{-2 \ln u_{1}} \sin(2\pi u_{2})$$
+
+증명은 아래와 같다. 실제로는 [Ziggurat algorithm](https://en.wikipedia.org/wiki/Ziggurat_algorithm) 등 더 효율적인 방법들도 있다.
+
+{{< toggle title="Box-Muller method의 증명" >}}
+우리는 정규 분포를 밀도함수를 이용해 정의했으므로, $(z_{1}, z_{2})$의 밀도함수가 정규분포임을 보이면 된다.
+
+$(u_{1}, u_{2})$의 밀도함수를 통해 $(z_{1}, z_{2})$의 밀도함수를 구하기 위해서는 변수 변환 공식을 사용해야 한다. 먼저 역변환을 구하면 다음과 같다.
+
+$$u_{1} = \exp\left( -\frac{z_{1}^{2} + z_{2}^{2}}{2} \right), \qquad u_{2} = \frac{1}{2\pi} \arctan\left( \frac{z_{2}}{z_{1}} \right)$$
+
+변수 변환 공식에 필요한 야코비안(Jacobian)은 다음과 같이 정의된다.
+
+$$J = \begin{vmatrix} \dfrac{\partial u_{1}}{\partial z_{1}} & \dfrac{\partial u_{1}}{\partial z_{2}} \\[1em] \dfrac{\partial u_{2}}{\partial z_{1}} & \dfrac{\partial u_{2}}{\partial z_{2}} \end{vmatrix}$$
+
+4개의 편도함수를 구하면 다음과 같다.
+
+$$\frac{\partial u_{1}}{\partial z_{1}} = -z_{1} \exp\left( -\frac{z_{1}^{2} + z_{2}^{2}}{2} \right), \qquad \frac{\partial u_{1}}{\partial z_{2}} = -z_{2} \exp\left( -\frac{z_{1}^{2} + z_{2}^{2}}{2} \right)$$
+
+$$\frac{\partial u_{2}}{\partial z_{1}} = -\frac{z_{2}}{2\pi(z_{1}^{2} + z_{2}^{2})}, \qquad \frac{\partial u_{2}}{\partial z_{2}} = \frac{z_{1}}{2\pi(z_{1}^{2} + z_{2}^{2})}$$
+
+야코비안 행렬식을 계산하면 다음과 같다.
+
+$$
+\begin{aligned}
+J &= \left| -z_{1} e^{-\frac{z_{1}^{2} + z_{2}^{2}}{2}} \cdot \frac{z_{1}}{2\pi(z_{1}^{2} + z_{2}^{2})} - \left( -z_{2} e^{-\frac{z_{1}^{2} + z_{2}^{2}}{2}} \right) \cdot \left( -\frac{z_{2}}{2\pi(z_{1}^{2} + z_{2}^{2})} \right) \right|\\
+&= \frac{1}{2\pi} \exp\left( -\frac{z_{1}^{2} + z_{2}^{2}}{2} \right)
+\end{aligned}$$
+
+$(u_{1}, u_{2})$는 독립적인 균등 분포를 따르므로, 결합 밀도함수는 $p(u_{1}, u_{2}) = 1$이다. 변수 변환 공식에 의해 $(z_{1}, z_{2})$의 밀도함수는 다음과 같다.
+
+$$
+\begin{aligned}
+p(z_{1}, z_{2}) &= |J| \cdot p(u_{1}, u_{2})\\
+&= \frac{1}{2\pi} \exp\left( -\frac{z_{1}^{2} + z_{2}^{2}}{2} \right) \cdot 1\\
+&= \frac{1}{\sqrt{2\pi}} e^{-z_{1}^{2}/2} \cdot \frac{1}{\sqrt{2\pi}} e^{-z_{2}^{2}/2}
+\end{aligned}$$
+
+이것은 두 독립적인 표준 정규 분포의 결합 밀도함수와 같다 (식 {{< eqref standard-normal >}}). 따라서 $z_{1}$과 $z_{2}$는 독립적인 표준 정규 분포를 따른다.
+{{< /toggle >}}
+
+{{< toggle title="어떻게 이런 걸 떠올렸는가?" >}}
+정규 분포의 밀도함수에 들어 있는 $e^{-x^{2}}$에 주목하자. 이것이 샘플링을 어렵게 만드는 요인이다.
+
+한편 Gauss 적분 $I = \int_{-\infty}^{\infty} e^{-x^2} dx$를 계산할 때, 적분을 제곱한 뒤 평면 위에서 극좌표로 변환하면 쉽게 풀린다는 사실은 잘 알려져 있다.
+
+$$
+\begin{aligned}
+I^2 &= \int_{-\infty}^{\infty} \int_{-\infty}^{\infty} e^{-(x^2 + y^2)} dx \, dy\\
+&= \int_{0}^{2\pi} \int_{0}^{\infty} e^{-r^2} r \, dr \, d\theta\\
+&= 2\pi \cdot \left[-\frac{1}{2} e^{-r^{2}}\right]_{r=0}^{\infty}\\
+&=\pi
+\end{aligned}
+$$
+
+Box-Muller method는 이 아이디어를 그대로 이용한다. 샘플링하고자 하는 변수를 하나에서 두 개로 늘리고, 극좌표로 변환한 다음 $r$과 $\theta$를 분리해서 샘플링한다. 이때 $r$과 $\theta$ 모두 간단하게 샘플링할 수 있는데, 이는 Gauss 적분과 같은 원리이다. $u_{1}$을 통해 $r$을 구하고, $u_{2}$를 통해 $\theta$를 구할 수 있다.
+
+이 과정을 구체적으로 살펴보자. 두 독립적인 표준 정규 분포 $(z_1, z_2)$의 결합 밀도함수를 극좌표 $(r, \theta)$로 나타내면 다음과 같다 ($z_1 = r\cos\theta$, $z_2 = r\sin\theta$).
+
+$$p(z_1, z_2) = \frac{1}{2\pi} e^{-(z_1^2 + z_2^2)/2} = \frac{1}{2\pi} e^{-r^2/2}$$
+
+이 밀도함수는 $\theta$에 의존하지 않으므로, $\theta$는 $[0, 2\pi]$에서 균등하게 분포한다. 즉, $\theta = 2\pi u_2$로 샘플링할 수 있다.
+
+$r$의 분포는 다음과 같이 구할 수 있다. 야코비안 $r$을 곱하면 $r$의 밀도함수는 $p(r) = r e^{-r^2/2}$이다. 이로부터 CDF를 구하면 $F(r) = 1 - e^{-r^2/2}$이다. Inverse transform sampling을 적용하면 $r = \sqrt{-2 \ln(1 - u_1)}$이다. $1 - u_1$도 $\mathcal{U}(0, 1)$을 따르므로, $r = \sqrt{-2 \ln u_1}$로 쓸 수 있다.
+
+따라서 $u_1, u_2 \sim \mathcal{U}(0, 1)$로부터 $r = \sqrt{-2 \ln u_1}$과 $\theta = 2\pi u_2$를 계산한 뒤, $z_1 = r \cos\theta$, $z_2 = r \sin\theta$로 변환하면 두 독립적인 표준 정규 샘플을 얻을 수 있다.
+{{< /toggle >}}
+
+마지막으로 **다변량 정규 분포(multivariate normal distribution)** 를 알아보자. 평균 $\boldsymbol{\mu}$와 공분산 행렬 $\boldsymbol{\Sigma}$를 가진 $d$차원 정규 분포 $\mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})$는 아래와 같이 정의된다.
+
+$$p_{\phi}(\mathbf{x}) = \frac{1}{(2\pi)^{d/2} |\boldsymbol{\Sigma}|^{1/2}} \exp\left( -\frac{1}{2} (\mathbf{x} - \boldsymbol{\mu})^{\top} \boldsymbol{\Sigma}^{-1} (\mathbf{x} - \boldsymbol{\mu}) \right)$$
+
+다변량 정규 분포는 $d$ 개의 단일 변수 표준 정규 분포를 따르는 변수들을 선형 변환해서 샘플링할 수 있다. 구체적인 방법은 다음과 같다.
+
+1. 먼저 $\boldsymbol{\Sigma} = \mathbf{L} \mathbf{L}^{\top}$인 하삼각 행렬 $\mathbf{L}$을 Cholesky 분해로 구한다.
+2. 표준 정규 분포로부터 $d$개의 독립적인 샘플 $z_{1}, \cdots, z_{d}$를 얻어 $\mathbf{z} = (z_{1}, \cdots, z_{d})^{\top}$를 만든다.
+3. $\mathbf{x} = \boldsymbol{\mu} + \mathbf{L} \mathbf{z}$로 변환하면 $\mathbf{x} \sim \mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})$가 된다.
+
+연속 분포를 살펴보았으니 이산 분포인 **범주형 분포(categorical distribution)** 도 살펴보자. 범주형 분포는 $K$개의 값 $\{1, 2, \cdots, K\}$ 중 하나를 선택하는 분포로, 각 값이 선택될 확률 $p_{1}, \cdots, p_{K}$를 직접 지정할 수 있다. 정규화 조건은 $\sum_{k=1}^{K} p_{k} = 1$이다. 샘플링은 균등 분포를 이용해 쉽게 수행할 수 있다. 그 과정은 다음과 같다.
+
+1. $u \sim \mathcal{U}(0, 1)$을 샘플링한다.
+2. $\sum_{i=1}^{k} p_{i} \geq u$를 만족하는 가장 작은 $k$를 찾는다.
+3. 이 $k$가 샘플링된 값이다.
+
+직관적으로, $[0, 1]$ 구간을 각 값의 확률에 비례하는 길이로 $K$개의 구간으로 나눈 뒤, $u$가 어느 구간에 속하는지를 확인하는 것이다.
+
+이상으로 정규화와 샘플링이 쉬운 간단한 확률 분포들을 알아보았다. 우리는 이러한 간단한 분포들을 재료로 표현력이 높은 복잡한 분포를 만들어야 한다. 딥러닝에서는 주로 인공 신경망이 분포를 복잡하게 만들어 주는 역할을 한다.
+
+한편, 정규 분포의 샘플링 방법들만 보아도 샘플링이 얼마나 어려운 문제인지 짐작할 수 있다.
+
+## 생성 모델의 핵심 아이디어
+
+앞 절에서 언급한 문제들은 생성 모델을 다루기 어렵게 만드는 요인이다. 여러 가지 생성 모델들은 이 문제들을 다양한 접근 방식으로 해결하며, 필요에 따라 일부를 포기하기도 한다. 구체적인 생성 모델들을 알아보기 전에, 몇 가지 중요한 아이디어를 살펴보자.
 
 ### Idea 1: Autoregressive Generation
 
@@ -310,7 +431,9 @@ $$p(\mathbf{z}) = \mathcal{N}(\mathbf{0}, \mathbf{I}), \qquad p_{\phi}(\mathbf{x
 
 이 방법이 정규화와 샘플링 문제를 어떻게 해결하는지 살펴보자. 먼저 정규화를 살펴보면, $p(\mathbf{z})$와 $p_{\phi}(\mathbf{x} \mid \mathbf{z})$가 각각 유효한 확률 분포이기만 하면, $p_{\phi}(\mathbf{x})$도 자동으로 정규화 조건을 만족한다. 증명은 다음과 같이 할 수 있다.
 
+{{< toggle title="정규화 조건의 증명">}}
 $$\int p_{\phi}(\mathbf{x}) \, d\mathbf{x} = \int \left( \int p_{\phi}(\mathbf{x} \mid \mathbf{z}) \, p(\mathbf{z}) \, d\mathbf{z} \right) d\mathbf{x} = \int p(\mathbf{z}) \underbrace{\left( \int p_{\phi}(\mathbf{x} \mid \mathbf{z}) \, d\mathbf{x} \right)}_{= 1} d\mathbf{z} = \int p(\mathbf{z}) \, d\mathbf{z} = 1$$
+{{< /toggle >}}
 
 샘플링 역시 간단하다. 다음과 같이 두 단계를 거쳐 $\mathbf{x}$를 생성할 수 있다.
 

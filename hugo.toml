@@ -29,6 +29,11 @@ title = 'My Blog'
           block = [['$$', '$$'], ['\[', '\]']]
           inline = [['$', '$'], ['\(', '\)']]
 
+    [markup.goldmark.parser]
+      [markup.goldmark.parser.attribute]
+        block = true
+        title = true
+
     [markup.goldmark.renderer]
       unsafe = true
 

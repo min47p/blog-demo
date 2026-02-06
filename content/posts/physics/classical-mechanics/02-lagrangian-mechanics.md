@@ -2,7 +2,6 @@
 title: "Classical Mechanics - 2. Lagrangian Mechanics"
 date: 2026-02-02
 tags: ["physics", "classical-mechanics", "landau-mechanics"]
-math: true
 draft: true
 ---
 

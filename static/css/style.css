@@ -144,8 +144,24 @@ a:hover { color: var(--color-accent-hover); text-decoration: underline; }
   .content-area { padding: 1rem; }
   main.container { padding: 1.5rem; }
 
-  .post-content { padding-right: 2.5rem; }
-  .katex-display::after { right: -2rem; font-size: 0.85rem; }
+  .katex-display {
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .katex-display > .katex {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .katex-display::after {
+    text-align: right;
+    margin-left: 0;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+  }
 }
 
 /* === Main Content === */
@@ -341,35 +357,29 @@ details.toggle .toggle-content p:last-child { margin-bottom: 0; }
 
 .post-content {
   counter-reset: equation;
-  padding-right: 3.5rem;
 }
 
 .katex-display {
-  position: relative;
-  overflow: visible !important;
+  display: flex !important;
+  align-items: center;
   counter-increment: equation;
 }
 
 .katex-display > .katex {
-  display: block;
+  flex: 1;
   overflow-x: auto;
   overflow-y: hidden;
 }
 
 .katex-display::after {
   content: "(" counter(equation) ")";
-  position: absolute;
-  right: -3rem;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1rem;
+  flex-shrink: 0;
+  margin-left: 1rem;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
   white-space: nowrap;
   pointer-events: none;
   user-select: none;
-}
-
-.callout .katex-display::after {
-  right: calc(-3rem - 1rem);
 }
 
 .eq-label {

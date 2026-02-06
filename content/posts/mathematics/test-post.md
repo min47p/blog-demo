@@ -2,7 +2,6 @@
 title: "Test Math Post"
 date: 2026-02-02
 tags: ["test"]
-math: true
 ---
 
 This is a test post in the mathematics section.
