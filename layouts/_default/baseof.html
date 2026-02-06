@@ -4,6 +4,11 @@
     {{ partial "head.html" . }}
   </head>
   <body>
+    <button class="sidebar-toggle" aria-label="Toggle sidebar">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
     <div class="site-layout">
       {{ partial "sidebar.html" . }}
       <div class="content-area">
@@ -13,5 +18,10 @@
         {{ partial "footer.html" . }}
       </div>
     </div>
+    <script>
+      document.querySelector('.sidebar-toggle').addEventListener('click', function() {
+        document.body.classList.toggle('sidebar-collapsed');
+      });
+    </script>
   </body>
 </html>
