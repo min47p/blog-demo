@@ -449,18 +449,14 @@ $$p(\mathbf{z}) = \mathcal{N}(\mathbf{0}, \mathbf{I}), \qquad p_{\phi}(\mathbf{x
 
 두 분포를 이렇게 단순하게 설정하면 표현력이 부족하지 않을까라는 의문이 들 수 있다. 하지만 $\boldsymbol{\mu}_{\phi}(\mathbf{z})$와 $\boldsymbol{\Sigma}_{\phi}(\mathbf{z})$ 신경망으로 모델링하면 $\mathbf{z}$마다 서로 다른 단순한 분포가 만들어진다. 이를 $p(\mathbf{z})$에 대해 적분하면 무수히 많은 단순한 분포가 합쳐져 $p_{\phi}(\mathbf{x})$라는 복잡한 분포를 표현할 수 있게 된다.
 
-이 방법이 정규화와 샘플링 문제를 어떻게 해결하는지 살펴보자. 먼저 정규화를 살펴보자. $p(\mathbf{z})$와 $p_{\phi}(\mathbf{x} \mid \mathbf{z})$가 각각 유효한 확률 분포이기만 하면, $p_{\phi}(\mathbf{x})$도 자동으로 정규화 조건을 만족한다. 증명은 다음과 같이 할 수 있다.
-
-{{< toggle title="정규화 조건의 증명">}}
-$$\int p_{\phi}(\mathbf{x}) \, d\mathbf{x} = \int \left( \int p_{\phi}(\mathbf{x} \mid \mathbf{z}) \, p(\mathbf{z}) \, d\mathbf{z} \right) d\mathbf{x} = \int p(\mathbf{z}) \underbrace{\left( \int p_{\phi}(\mathbf{x} \mid \mathbf{z}) \, d\mathbf{x} \right)}_{= 1} d\mathbf{z} = \int p(\mathbf{z}) \, d\mathbf{z} = 1$$
-{{< /toggle >}}
-
-샘플링 역시 간단하다. 다음과 같이 두 단계를 거쳐 $\mathbf{x}$를 생성할 수 있다.
+이 방법이 정규화와 샘플링 문제를 어떻게 해결하는지 살펴보자. 먼저 샘플링을 살펴보자. 다음과 같이 두 단계를 거쳐 $\mathbf{x}$를 생성할 수 있다.
 
 - $\mathbf{z} \sim p(\mathbf{z})$에서 잠재 변수를 샘플링한다.
 - $\mathbf{x} \sim p_{\phi}(\mathbf{x} \mid \mathbf{z})$에서 데이터를 샘플링한다.
 
 각 단계에서 샘플링하는 분포가 단순하므로, 전체 과정도 효율적이다.
+
+$p_{\phi}(\mathbf{x})$가 정규화 조건을 만족하는 이유도 위의 샘플링 과정으로부터 바로 알 수 있다. $\mathbf{z}$를 올바른 분포에서 샘플링했고, $\mathbf{z}$를 이용해 만들어진 올바른 분포에서 $\mathbf{x}$를 샘플링했기 때문에 $\mathbf{x}$ 또한 당연히 올바른 확률 분포를 따르는 확률 변수가 된다.
 
 하지만 학습에는 어려움이 있다. 확률 밀도 $p_{\phi}(\mathbf{x})$가 식 
 {{< eqref latent-variable-model-marginal >}}처럼 $p(\mathbf{z})$와 $p_{\phi}(\mathbf{x} \mid \mathbf{z})$가 연관된 복잡한 적분으로 표현되기 때문이다. 학습의 어려움에 대해서는 대표적인 latent variable 모델인 variational autoencoder (VAE)를 다룰 때 더 자세히 살펴보자.
