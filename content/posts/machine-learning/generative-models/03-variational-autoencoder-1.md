@@ -1,6 +1,6 @@
 ---
 title: "Generative Models - 03. Variational Autoencoder (1)"
-date: 2026-02-13
+date: 2026-02-12
 tags: ["machine-learning", "generative-models"]
 draft: false
 ---
