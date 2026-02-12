@@ -60,7 +60,7 @@ $p_{\mathrm{data}}(\mathbf{x})$에서 IID 샘플링한 데이터 $\mathbf{x}_{1}
 이 문제의 어려움은 실제 확률 분포의 밀도함수의 값 $p_{\mathrm{data}}(\mathbf{x})$을 알아낼 수 없다는 점에 있다. 실제 분포와 관련해서 우리가 접근할 수 있는 것은 오직 $N$개의 샘플 뿐이다. 하지만, 우리가 궁극적으로 원하는 것은 우리 마음대로 샘플링이 가능한 분포 $p$이고, 샘플링을 하기 위해서는 밀도함수 $p(\mathbf{x})$에 대한 정보를 어떻게든 가지고 있어야 한다. (밀도함수 $p(\mathbf{x})$의 정보를 어디까지 알아내야 샘플링이 가능할지는 상황에 따라 다르다.)
 
 {{< callout type="Note" >}}
-사실 $N$이 매우 크면 샘플 $\mathbf{x}_{i}$를 통해 밀도함수 $p_{\mathrm{data}}$의 값을 충분히 근사할 수 있는 것은 맞다. 하지만 우리가 관심 있는 이미지나 텍스트처럼 고차원의 데이터가 주어졌을 경우 우리에게 유용한 수준까지 밀도함수를 근사하기 위해서는 어마어마하게 큰 $N$이 필요하다. 따라서 '밀도함수에 대한 정보는 얻을 수 없다'라고 보아야 한다.
+사실 $N$이 매우 크면 샘플 $\mathbf{x}_{i}$를 통해 밀도함수 $p_{\mathrm{data}}$를 충분히 근사할 수 있는 것은 맞다. 하지만 우리가 관심 있는 이미지나 텍스트처럼 고차원의 데이터가 주어졌을 경우 우리에게 유용한 수준까지 밀도함수를 근사하기 위해서는 어마어마하게 큰 $N$이 필요하다. 따라서 '밀도함수에 대한 정보는 얻을 수 없다'라고 보아야 한다.
 {{< /callout >}}
 
 ## 매개화된 확률 분포
@@ -106,7 +106,7 @@ $$\begin{aligned}
 {{< callout type="Note" >}}
 MLE에서는 모든 매개변수를 평등하게 대하고 있다. 하지만 베이지안 통계에서는 매개변수 $\theta$를 확률 변수로 간주한 뒤, $\theta$의 사전 확률 분포(prior distribution)을 고려하기도 한다. 이 방법을 maximum a posteriori estimation (MAP)라 한다.
 
-MLE에서 어떤 매개변수 $\theta$가 얼마나 '좋은지' 나타내는 척도로 가능도 $\mathcal{L}(\theta \mid \mathbf{x}_{1}, \cdots, \mathbf{x}_{N}) = p_{\theta}(\mathbf{x}_{1}, \cdots, \mathbf{x}_{N})$을 사용했다. MAP에서는 이와 같은 척도로 조건부 확률 $p(\theta \mid \mathbf{x}_{1}, \cdots, \mathbf{x}_{N})$를 활용한다. 이것이 가능한 이유는 매개변수 $\theta$를 확률 변수로 보고 있기 때문이다.
+MLE에서 어떤 매개변수 $\theta$가 얼마나 '좋은지' 나타내는 척도로 가능도 $\mathcal{L}(\theta \mid \mathbf{x}_{1}, \cdots, \mathbf{x}_{N}) = p_{\theta}(\mathbf{x}_{1}, \cdots, \mathbf{x}_{N})$을 사용했다. MAP에서는 이와 같은 척도로 사후 확률 분포(posterior distribution) $p(\theta \mid \mathbf{x}_{1}, \cdots, \mathbf{x}_{N})$를 활용한다. 이것이 가능한 이유는 매개변수 $\theta$를 확률 변수로 보고 있기 때문이다.
 
 $\theta$의 사전 확률 분포를 $p(\theta)$라 하면, 이 조건부 확률은 베이즈 정리에 의해 다음과 같이 구할 수 있다.
 $$
@@ -234,6 +234,16 @@ $$D_{\mathrm{KL}}(p_{\theta} \| p_{\mathrm{data}}) = \mathbb{E}_{\mathbf{x} \sim
 
 이 식의 기댓값은 $p_{\theta}$에 대한 것이므로 $p_{\theta}$에서 샘플링이 가능하다면 첫 번째 조건은 만족할 수 있다. 하지만 피적분함수에 $p_{\mathrm{data}}(\mathbf{x})$가 포함되어 있고, 우리는 $p_{\mathrm{data}}$의 밀도함수 값을 알 수 없으므로 두 번째 조건을 만족하지 못한다. 따라서 이 식에는 몬테 카를로 근사를 적용할 수 없다.
 
+{{< callout type="Note" >}}
+
+
+몬테 카를로 근사를 적용할 때 고려해야 하는 중요한 점이 한 가지 더 있는데, 바로 근사값의 **분산**이다. 큰 수의 법칙에 의해 $N \to \infty$일 때 근사값이 참값에 수렴하는 것은 보장된다. 하지만 유한한 $N$개의 샘플로 근사할 때 근사값의 정확도는 추정량의 분산에 의해 결정된다. $f(\mathbf{x})$의 분산이 크면 같은 수의 샘플을 사용하더라도 근사의 오차가 커진다.
+
+조금 더 구체적으로 살펴보자. 중심극한정리(CLT, Central Limit Theorem)에 의하면, $N$개의 샘플로 추정한 몬테 카를로 근사값의 분산은 $\sigma_{f} / \sqrt{N}$에 비례하는 크기를 가진다. 여기에서 $\sigma_{f} = \sqrt{\mathrm{Var}[f(\mathbf{x})]}$는 $f$의 표준편차이다. $N$이 무한히 커지면 분산이 $0$에 수렴해 오차가 $0$이 되기는 하지만, $N^{-1/2}$에 비례하므로 그 속도가 그렇게 빠르지는 않다. 결국 $\sigma_{f}$가 크면 어마어마하게 많은 수의 샘플이 필요하게 된다.
+
+따라서 몬테 카를로 근사가 가능하더라도, 분산이 지나치게 크면 실질적으로는 사용할 수 없다. 이 문제는 여기에서는 일단 넘어가고, 필요할 때 다시 언급하겠다.
+{{< /callout >}}
+
 정리하면, 최적화 문제를 풀기 위해서는 목적 함수 $J(\theta)$가 $\theta$에 대해 미분해 $\nabla_{\theta} J(\theta)$를 구할 수 있어야 한다. 만약 $\nabla_{\theta} J(\theta)$에 기댓값이 있다면 몬테 카를로 근사를 적용할 수 있어야 한다.
 
 # 확률 분포를 어떻게 구현해야 하는가?
@@ -260,7 +270,7 @@ $$
 p_{\theta}(\mathbf{x}) = C \exp(f_{\theta}(\mathbf{x})) = \frac{\exp(f_{\theta}(\mathbf{x}))}{\int \exp(f_{\theta}(\mathbf{x})) \;d\mathbf{x}}
 $$
 
-$p_{\theta}(\mathbf{x})$를 잘 정의하기는 했지만, 이것을 실제로 계산하는 것은 불가능하다. 분모에 있는 적분이 너무 복잡해 계산할 수 없기 때문이다. 세 번째 조건인 학습 가능성도 문제가 된다. 분모의 적분이 $\theta$에 의존하기 때문에, $p_{\theta}(\mathbf{x})$를 $\theta$로 미분하는 것 또한 다루기 어렵다.
+$p_{\theta}(\mathbf{x})$를 잘 정의하기는 했지만, 이것을 실제로 계산하는 것은 불가능하다. 분모에 있는 적분이 너무 복잡해 계산할 수 없기 때문이다. 세 번째 조건인 학습 가능성도 문제가 된다. $p_{\theta}(\mathbf{x})$를 $\theta$로 미분하기 어려운데, 분모의 적분이 $\theta$에 의존하고 있기 때문이다.
 
 {{< callout type="Note" >}}
 앞의 식 {{< eqref expectation-integral >}}의 복잡한 적분은 몬테 카를로로 잘 근사하지 않았나? 라는 의문이 들 수 있다. 하지만 식 {{< eqref expectation-integral >}}의 적분은 확률 분포 $p(\mathbf{x})$에 대한 기댓값이고, $p(\mathbf{x})$에서 샘플링이 가능했기 때문에 몬테 카를로 근사를 적용할 수 있었다. 반면 정규화 상수의 적분 $\int \exp(f_{\theta}(\mathbf{x})) \, d\mathbf{x}$는 우리가 샘플링할 수 있는 확률 분포에 대한 기댓값으로 자연스럽게 표현되지 않으므로, 몬테 카를로 근사를 직접 적용할 수 없다.
@@ -453,17 +463,17 @@ $$p_{\theta}(x_{i} = k \mid x_{1:i-1}) = \frac{\exp(f_{\theta}(x_{1:i-1})_{k})}{
 잠재 변수 $\mathbf{z}$는 직접 관측할 수 없지만, 데이터의 생성 과정을 설명하는 변수이다. 예를 들어, 사람의 얼굴 이미지를 생성하는 문제에서 잠재 변수는 자세, 표정, 조명 등 이미지의 특성을 결정하는 요인들에 해당할 수 있다. 잠재 변수를 도입하면 데이터의 확률 분포를 다음과 같이 표현할 수 있다.
 
 {{< eqlabel latent-variable-model-marginal >}}
-$$p_{\theta}(\mathbf{x}) = \int p_{\theta}(\mathbf{x}, \mathbf{z}) \, d\mathbf{z} = \int p_{\theta}(\mathbf{x} \mid \mathbf{z}) \, p(\mathbf{z}) \, d\mathbf{z}$$
+$$p_{\theta}(\mathbf{x}) = \int p_{\theta}(\mathbf{x}, \mathbf{z}) \, d\mathbf{z} = \int p_{\theta}(\mathbf{x} \mid \mathbf{z}) \, p_{\theta}(\mathbf{z}) \, d\mathbf{z}$$
 
-여기에서 $p(\mathbf{z})$는 잠재 변수의 사전 분포이고, $p_{\theta}(\mathbf{x} \mid \mathbf{z})$는 잠재 변수가 주어졌을 때 데이터의 조건부 분포이다. 이 두 분포는 일반적으로 단순한 분포가 되도록 정의한다. 예를 들어, $p(\mathbf{z})$를 표준 정규 분포로, $p_{\theta}(\mathbf{x} \mid \mathbf{z})$를 $\mathbf{z}$에 의해 평균과 분산이 결정되는 정규 분포로 설정할 수 있다. 즉, $\boldsymbol{\mu}_{\theta}(\mathbf{z})$와 $\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$가 결정론적인 함수일 때, 다음과 같이 정의할 수 있다.
+여기에서 $p_{\theta}(\mathbf{z})$는 잠재 변수의 사전 분포이고, $p_{\theta}(\mathbf{x} \mid \mathbf{z})$는 잠재 변수가 주어졌을 때 데이터의 조건부 분포이다. 이 두 분포는 일반적으로 단순한 분포가 되도록 정의한다. 예를 들어, $p_{\theta}(\mathbf{z})$를 표준 정규 분포로, $p_{\theta}(\mathbf{x} \mid \mathbf{z})$를 $\mathbf{z}$에 의해 평균과 분산이 결정되는 정규 분포로 설정할 수 있다. 즉, $\boldsymbol{\mu}_{\theta}(\mathbf{z})$와 $\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$가 결정론적인 함수일 때, 다음과 같이 정의할 수 있다. ($\mathbf{z}$의 분포가 표준 정규 분포가 되면 더 이상 $\theta$에 의존하지 않게 되므로 아래첨자를 생략했다.)
 
 $$p(\mathbf{z}) = \mathcal{N}(\mathbf{0}, \mathbf{I}), \qquad p_{\theta}(\mathbf{x} \mid \mathbf{z}) = \mathcal{N}(\boldsymbol{\mu}_{\theta}(\mathbf{z}), \boldsymbol{\Sigma}_{\theta}(\mathbf{z}))$$
 
-두 분포를 이렇게 단순하게 설정하면 표현력이 부족하지 않을까라는 의문이 들 수 있다. 하지만 $\boldsymbol{\mu}_{\theta}(\mathbf{z})$와 $\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$ 신경망으로 모델링하면 $\mathbf{z}$마다 서로 다른 단순한 분포가 만들어진다. 이를 $p(\mathbf{z})$에 대해 적분하면 무수히 많은 단순한 분포가 합쳐져 $p_{\theta}(\mathbf{x})$라는 복잡한 분포를 표현할 수 있게 된다.
+두 분포를 이렇게 단순하게 설정하면 표현력이 부족하지 않을까라는 의문이 들 수 있다. 하지만 $\boldsymbol{\mu}_{\theta}(\mathbf{z})$와 $\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$ 신경망으로 모델링하면 $\mathbf{z}$마다 서로 다른 단순한 분포가 만들어진다. 이를 $p_{\theta}(\mathbf{z})$에 대해 적분하면 무수히 많은 단순한 분포가 합쳐져 $p_{\theta}(\mathbf{x})$라는 복잡한 분포를 표현할 수 있게 된다.
 
 이 방법이 정규화와 샘플링 문제를 어떻게 해결하는지 살펴보자. 먼저 샘플링을 살펴보자. 다음과 같이 두 단계를 거쳐 $\mathbf{x}$를 생성할 수 있다.
 
-- $\mathbf{z} \sim p(\mathbf{z})$에서 잠재 변수를 샘플링한다.
+- $\mathbf{z} \sim p_{\theta}(\mathbf{z})$에서 잠재 변수를 샘플링한다.
 - $\mathbf{x} \sim p_{\theta}(\mathbf{x} \mid \mathbf{z})$에서 데이터를 샘플링한다.
 
 각 단계에서 샘플링하는 분포가 단순하므로, 전체 과정도 효율적이다.
@@ -471,7 +481,7 @@ $$p(\mathbf{z}) = \mathcal{N}(\mathbf{0}, \mathbf{I}), \qquad p_{\theta}(\mathbf
 $p_{\theta}(\mathbf{x})$가 정규화 조건을 만족하는 이유도 위의 샘플링 과정으로부터 바로 알 수 있다. $\mathbf{z}$를 올바른 분포에서 샘플링했고, $\mathbf{z}$를 이용해 만들어진 올바른 분포에서 $\mathbf{x}$를 샘플링했기 때문에 $\mathbf{x}$ 또한 당연히 올바른 확률 분포를 따르는 확률 변수가 된다.
 
 하지만 학습에는 어려움이 있다. 확률 밀도 $p_{\theta}(\mathbf{x})$가 식 
-{{< eqref latent-variable-model-marginal >}}처럼 $p(\mathbf{z})$와 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$가 연관된 복잡한 적분으로 표현되기 때문이다. 학습의 어려움에 대해서는 대표적인 latent variable 모델인 variational autoencoder (VAE)를 다룰 때 더 자세히 살펴보자.
+{{< eqref latent-variable-model-marginal >}}처럼 $p_{\theta}(\mathbf{z})$와 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$가 연관된 복잡한 적분으로 표현되기 때문이다. 학습의 어려움에 대해서는 대표적인 latent variable 모델인 variational autoencoder (VAE)를 다룰 때 더 자세히 살펴보자.
 
 샘플링 과정을 더 단순화할 수도 있다. 두 번째 단계에서 $\mathbf{x}$를 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$로부터 확률적으로 샘플링하는 대신, 신경망 $G_{\theta}$를 이용한 결정론적인 변환 $\mathbf{x} = G_{\theta}(\mathbf{z})$로 대체하는 것이다. 이렇게 하면 확률 밀도 $p_{\theta}(\mathbf{x})$를 다루기가 더 어려워지기 때문에, 이를 해결하기 위한 아이디어가 필요하다. 이러한 방식은 generative adversarial network (GAN)나 normalizing flow (NF)를 다룰 때 더 자세히 살펴보자.
 
@@ -504,10 +514,10 @@ $p_{\theta}$를 구현할 때는 표현력, 정규화, 학습 가능성, 샘플�
 6. Diffusion models
 
 {{< reflist >}}
-{{< refitem 1 >}}Lai, Chieh-Hsin and Song, Yang and Kim, Dongjun and Mitsufuji, Yuki and Ermon, Stefano. [*The principles of diffusion models*](https://arxiv.org/abs/2510.21890). arXiv preprint, 2025.{{< /refitem >}}
-{{< refitem 2 >}}Wikipedia, [*Maximum likelihood estimation*](https://en.wikipedia.org/wiki/Maximum_likelihood_estimation).{{< /refitem >}}
-{{< refitem 3 >}}Wikipedia, [*Maximum a posteriori estimation*](https://en.wikipedia.org/wiki/Maximum_a_posteriori_estimation).{{< /refitem >}}
-{{< refitem 4 >}}van den Oord, Aaron and Kalchbrenner, Nal and Kavukcuoglu, Koray. [*Pixel Recurrent Neural Networks*](https://arxiv.org/abs/1601.06759). arXiv preprint, 2016.{{< /refitem >}}
-{{< refitem 5 >}}Li, Tianhong and Tian, Yonglong and Li, He and Deng, Mingyang and He, Kaiming. [*Autoregressive Image Generation without Vector Quantization*](https://arxiv.org/abs/2406.11838). NeurIPS, 2024.{{< /refitem >}}
-{{< refitem 6 >}}Wikipedia, [*Box-Muller transform*](https://en.wikipedia.org/wiki/Box-Muller_transform).{{< /refitem >}}
+{{< refitem 1 >}}Lai, Chieh-Hsin and Song, Yang and Kim, Dongjun and Mitsufuji, Yuki and Ermon, Stefano. "[The principles of diffusion models](https://arxiv.org/abs/2510.21890)". *arXiv preprint*, 2025.{{< /refitem >}}
+{{< refitem 2 >}}Wikipedia, "[Maximum likelihood estimation]"(https://en.wikipedia.org/wiki/Maximum_likelihood_estimation).{{< /refitem >}}
+{{< refitem 3 >}}Wikipedia, "[Maximum a posteriori estimation](https://en.wikipedia.org/wiki/Maximum_a_posteriori_estimation)".{{< /refitem >}}
+{{< refitem 4 >}}van den Oord, Aaron and Kalchbrenner, Nal and Kavukcuoglu, Koray. "[Pixel Recurrent Neural Networks](https://arxiv.org/abs/1601.06759)". *arXiv preprint*, 2016.{{< /refitem >}}
+{{< refitem 5 >}}Li, Tianhong and Tian, Yonglong and Li, He and Deng, Mingyang and He, Kaiming. "[Autoregressive Image Generation without Vector Quantization](https://arxiv.org/abs/2406.11838)". *NeurIPS*, 2024.{{< /refitem >}}
+{{< refitem 6 >}}Wikipedia, "[Box-Muller transform](https://en.wikipedia.org/wiki/Box-Muller_transform)".{{< /refitem >}}
 {{< /reflist >}}
