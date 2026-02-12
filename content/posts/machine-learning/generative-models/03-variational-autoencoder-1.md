@@ -1,8 +1,8 @@
 ---
 title: "Generative Models - 03. Variational Autoencoder (1)"
-date: 2026-02-05
+date: 2026-02-13
 tags: ["machine-learning", "generative-models"]
-draft: true
+draft: false
 ---
 
 잠재 변수(latent variable)을 사용하는 대표적인 모델인 variational autoencoder (VAE)에 대해 알아보자. VAE는 2013년 D. P. Kingma와 M. Welling이 개발했다{{< ref 1 >}}. D. P. Kingma는 Adam optimizer를 개발하기도 한 능력자이다{{< ref 2 >}}.
@@ -336,7 +336,7 @@ $$
 
 ### Limitations of MCMC
 
-MCMC는 강력한 방법이지만 몇 가지 한계가 있다. 가장 큰 문제는 수렴 속도이다. MCMC는 rejection sampling보다는 효율적이지만, 여전히 posterior에 수렴하기까지는 충분한 반복이 필요하다. 그리고 잠재 변수의 차원이 높아지면 이 시간이 급격히 늘어난다. 심층 생성 모델에서는 $\mathbf{z}$의 차원이 수백에서 수천에 이르기 때문에, 하나의 $\mathbf{x}$에 대해서만 posterior 샘플을 얻는 데도 매우 오래 걸린다.
+MCMC는 강력한 방법이지만 몇 가지 한계가 있다. 가장 큰 문제는 수렴 속도이다. MCMC는 rejection sampling보다는 효율적이지만, 여전히 posterior에 수렴하기까지는 충분한 반복이 필요하다. 그리고 잠재 변수의 차원이 높아지면 이 시간이 급격히 늘어난다. 딥러닝 모델에서는 $\mathbf{z}$의 차원이 수백에서 수천에 이르기 때문에, 하나의 $\mathbf{x}$에 대해서만 posterior 샘플을 얻는 데도 매우 오래 걸린다.
 
 그래서 MCMC를 학습에 적용하기 쉽지 않다. 우리가 하고 싶은 것은 식 {{< eqref marginal-as-posterior >}}을 계산하는 것인데, 여기로 옮겨 온 뒤 몬테 카를로 근사까지 적용해서 다시 써 보자. 먼저 $K$개의 샘플 $\mathbf{z}^{(1)}$, $\cdots$, $\mathbf{z}^{(K)}$를 $p_{\theta}(\mathbf{z} \mid \mathbf{x})$에서 MCMC로 샘플링하면 식 {{< eqref marginal-as-posterior >}}을 다음과 같이 근사할 수 있다.
 $$
