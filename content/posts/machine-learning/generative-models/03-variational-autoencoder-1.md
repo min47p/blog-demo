@@ -5,6 +5,8 @@ tags: ["machine-learning", "generative-models"]
 draft: false
 ---
 
+*이 글은 Claude Opus 4.6의 도움을 받아 작성했다.*
+
 잠재 변수(latent variable)을 사용하는 대표적인 모델인 variational autoencoder (VAE)에 대해 알아보자. VAE는 2013년 D. P. Kingma와 M. Welling이 개발했다{{< ref 1 >}}. D. P. Kingma는 Adam optimizer를 개발하기도 한 능력자이다{{< ref 2 >}}.
 
 VAE가 만들어진 맥락을 이해하기 위해, 확률 모델에 대한 전통적인 추론 알고리즘에서부터 출발하려고 한다. 첫 포스트에서는 E-M algorithm, MCMC, variational Bayes에 대해 간단히 알아볼 것이다. 두 번째 포스트에서는 amortized inference에 대해 알아보고, wake-sleep 알고리즘을 살펴본 뒤 본격적으로 VAE에 대해 알아볼 것이다. 마지막 포스트에서는 Hierarchical VAE (HVAE)를 살펴볼 것이다.
@@ -69,18 +71,38 @@ $$\log p_{\theta}(\mathbf{x}) = \log \int p_{\theta}(\mathbf{x}, \mathbf{z}) \, 
 적분이 $\mathbf{z}$에 대한 기댓값의 형태로 나타낼 수 있으므로, 몬테 카를로 근사를 적용하면 되지 않나? 라고 생각할 수 있다. 실제로, 다음과 같은 표현이 가능하다.
 $$\log p_{\theta}(\mathbf{x}) = \log \int p_{\theta}(\mathbf{x} \mid \mathbf{z}) \, p_{\theta}(\mathbf{z}) \, d\mathbf{z} = \log \mathbb{E}_{\mathbf{z} \sim p_{\theta}(\mathbf{z})}[p_{\theta}(\mathbf{x} \mid \mathbf{z})]$$
 
-실제로 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$도 계산 가능하므로, $p_{\theta}(\mathbf{z})$에서 $\mathbf{z}$를 샘플링해 적분값을 근사하려는 아이디어는 좋아 보인다. 하지만 이 방법이 실제로 통하지 않는 이유는 사전 분포 $p_{\theta}(\mathbf{z})$에서 샘플링한 $\mathbf{z}$가 주어진 $\mathbf{x}$를 잘 설명할 가능성이 매우 낮기 때문이다. $\mathbf{z}$가 고차원일 때, 사전 분포가 차지하는 공간은 매우 넓지만 특정 $\mathbf{x}$에 대해 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$가 유의미한 값을 가지는 $\mathbf{z}$의 영역은 극히 작다. 따라서 대부분의 샘플에서 $p_{\theta}(\mathbf{x} \mid \mathbf{z}) \approx 0$이 되어, 유의미한 근사값을 얻기 어렵다.
+실제로 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$도 계산 가능하므로, $p_{\theta}(\mathbf{z})$에서 $\mathbf{z}$를 샘플링해 적분값을 근사하려는 아이디어는 좋아 보인다. 하지만 이 방법이 실제로 통하지 않는 이유는 사전 분포 $p_{\theta}(\mathbf{z})$에서 샘플링한 $\mathbf{z}$가 주어진 $\mathbf{x}$를 잘 설명할 가능성이 매우 낮기 때문이다. 모델링이 잘 되어 있다면 $\mathbf{z}$는 $\mathbf{x}$를 잘 설명하는, 즉 높은 상관 관계를 가지는 변수가 되어야 한다. 따라서 $\mathbf{z}$가 고차원일 때, 사전 분포가 차지하는 공간은 매우 넓지만 특정 $\mathbf{x}$에 대해 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$가 유의미한 값을 가지는 $\mathbf{z}$의 영역은 극히 작다. 따라서 대부분의 샘플에서 $p_{\theta}(\mathbf{x} \mid \mathbf{z}) \approx 0$이 되어, 유의미한 근사값을 얻기 어렵다.
 
-이는 [첫 포스트](../01-overview/#monte-carlo-approximation)에서 잠깐 언급했던, 기댓값 내부의 분산이 지나치게 커 몬테 카를로 근사를 실질적으로 사용할 수 없는 상황이다. $p_{\theta}(\mathbf{x} \mid \mathbf{z})$는 아주 좁은 영역의 $\mathbf{z}$에서만 유의미한 값을 가지고, 나머지 영역에서의 값은 $0$에 수렴하기 때문에 분산이 크다.
+{{< callout type="Note" >}}
+이 현상은 앞의 요리사 예시에서는 잘 드러나지 않는다. $\mathbf{z}$가 '좋음'과 '나쁨' 두 가지뿐이므로, $p_{\theta}(\mathbf{x}) = p_{\theta}(\mathbf{x} \mid \mathbf{z} = \text{좋음}) \cdot \pi + p_{\theta}(\mathbf{x} \mid \mathbf{z} = \text{나쁨}) \cdot (1 - \pi)$를 정확히 계산할 수 있기 때문이다. 그래서 다른 예시를 두 개 살펴보자.
+
+1. $z \sim \mathcal{N}(0, 1)$이고 $p_{\theta}(x \mid z) = \mathcal{N}(z, 0.0001)$인 1차원 모델을 생각하자. 분산이 매우 작으므로, $x = 3$이 관측되었다면 $p_{\theta}(x = 3 \mid z)$가 유의미한 값을 가지는 $z$의 영역은 $3$ 근처의 매우 좁은 구간뿐이다. 하지만 사전 분포 $\mathcal{N}(0, 1)$에서 샘플링하면 $z$가 $3$ 근처에 올 확률은 매우 낮다.
+
+2. 사람의 얼굴 이미지를 생성하는 모델에서, 잠재 변수 $\mathbf{z}$가 표정, 자세, 조명, 피부색 등의 특성을 표현하는 100차원 벡터라고 하자. 특정 얼굴 사진 $\mathbf{x}$가 주어졌을 때, 이 사진을 잘 설명하는 $\mathbf{z}$는 '살짝 웃는 표정, 정면을 바라보는 자세, 밝은 조명, ...'에 해당하는 아주 좁은 영역에만 존재한다. 사전 분포에서 $\mathbf{z}$를 랜덤으로 뽑으면 '크게 웃는 표정, 옆을 바라보는 자세, 어두운 조명, ...'과 같이 전혀 다른 특성이 나올 것이고, 이 $\mathbf{z}$에 대한 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$는 거의 $0$이 된다. 100차원 공간에서 랜덤으로 뽑은 점이 원하는 좁은 영역에 들어갈 확률은 사실상 $0$이다.
+{{< /callout >}}
+
+이는 [첫 포스트](../01-overview/#monte-carlo-approximation)에서 잠깐 언급했던, 기댓값 내부의 **분산이 지나치게 커** 몬테 카를로 근사를 실질적으로 사용할 수 없는 상황이다. $p_{\theta}(\mathbf{x} \mid \mathbf{z})$는 아주 좁은 영역의 $\mathbf{z}$에서만 유의미한 값을 가지고, 나머지 영역에서의 값은 $0$에 수렴하기 때문에 분산이 크다.
 
 위 논의는 '유의미한 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$를 가지는 $z$의 값이 중요하다' 라는 힌트를 주고 있다. 그리고 이러한 $\mathbf{z}$는 분포 $p_{\theta}(\mathbf{z} \mid \mathbf{x})$, 즉 관측 데이터 $\mathbf{x}$가 주어졌을 때 잠재 변수 $\mathbf{z}$의 분포와 관련이 있다. 왜냐하면 다음과 같은 베이즈 정리 때문이다.
+{{< eqlabel bayes >}}
 $$
 p_{\theta}(\mathbf{x} \mid \mathbf{z}) = \frac{p_{\theta}(\mathbf{z} \mid \mathbf{x}) p_{\theta}(\mathbf{x})}{p_{\theta}(\mathbf{z})}
 $$
 
 위 식에서, $p_{\theta}(\mathbf{x} \mid \mathbf{z})$가 의미 있는 값이려면 분자에 위치한 $p_{\theta}(\mathbf{z} \mid \mathbf{x})$도 의미 있는 값이어야 한다는 사실을 알 수 있다. $p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 **사후 분포(posterior distribution)** 라고 한다. $\mathbf{x}$가 주어지기 전 $\mathbf{z}$의 분포, 즉 $p_{\theta}(\mathbf{z})$는 **사전 분포(prior distribution)** 라고 한다.
 
-그런데 문제는 대부분의 경우 posterior $p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 구하기도 어렵다는 점이다. 위 식에서는 우리가 처음에 구하려고 했던 $p_{\theta}(\mathbf{x})$도 분자에 들어 있어, 순환 논리에 빠진 것 같다는 느낌을 준다. 아무튼 우리의 모델에서 posterior를 구할 수 있다면 문제를 해결할 수 있다. 아래와 같이 $\log p_{\theta}(\mathbf{x})$의 gradient를 계산 가능한 식으로 바꿀 수 있기 때문이다.
+{{< callout type="Note" >}}
+Prior는 데이터를 관측하기 전에 잠재 변수에 대해 가지고 있는 사전 믿음이다. 예를 들어, 요리사의 기분 예시에서 '기분이 좋을 확률이 나쁠 확률보다 높을 것이다'와 같은 가정이 prior에 해당한다. 반면 posterior는 **실제 데이터를 관측한 뒤** 이를 반영한 믿음이다. 손님들의 점수가 매우 높았다면, 그 날 요리사의 기분이 좋았을 확률이 높아진다.
+
+요리사 예시에서 prior는 기분이 좋을 확률 $p_{\theta}(\mathbf{z} = \text{좋음}) = \pi$이다. 특정 날의 점수 $\mathbf{x}$를 관측한 뒤의 posterior는 베이즈 정리에 의해 다음과 같다.
+$$
+p_{\theta}(\mathbf{z} = \text{좋음} \mid \mathbf{x}) = \frac{p_{\theta}(\mathbf{x} \mid \mathbf{z} = \text{좋음}) \cdot \pi}{p_{\theta}(\mathbf{x} \mid \mathbf{z} = \text{좋음}) \cdot \pi + p_{\theta}(\mathbf{x} \mid \mathbf{z} = \text{나쁨}) \cdot (1 - \pi)}
+$$
+
+예를 들어 $\pi = 0.6$이고, 기분이 좋을 때의 점수 분포가 $\mathcal{N}(8, 1)$, 나쁠 때가 $\mathcal{N}(4, 1)$이라고 하자. 어떤 날 평균 점수가 $\mathbf{x} = 9$였다면, $p_{\theta}(\mathbf{x} = 9 \mid \mathbf{z} = \text{좋음})$이 $p_{\theta}(\mathbf{x} = 9 \mid \mathbf{z} = \text{나쁨})$보다 훨씬 크기 때문에, posterior $p_{\theta}(\mathbf{z} = \text{좋음} \mid \mathbf{x} = 9)$는 prior인 $0.6$보다 훨씬 높은 값이 된다.
+{{< /callout >}}
+
+그런데 문제는 대부분의 경우 posterior $p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 구하기도 어렵다는 점이다. 위 식 {{< eqref bayes >}}에서는 우리가 처음에 구하려고 했던 $p_{\theta}(\mathbf{x})$도 분자에 들어 있어, 순환 논리에 빠진 것 같다는 느낌을 준다. 아무튼 우리의 모델에서 posterior를 구할 수 있다면 문제를 해결할 수 있다. 아래와 같이 $\log p_{\theta}(\mathbf{x})$의 gradient를 계산 가능한 식으로 바꿀 수 있기 때문이다.
 {{< eqlabel marginal-as-posterior >}}
 $$
 \begin{align*}
@@ -95,11 +117,15 @@ $$
 \end{align*}
 $$
 
+Posterior $p_{\theta}(\mathbf{z} \mid \mathbf{x})$에서 샘플링이 가능하다면 마지막 식을 몬테 카를로 근사할 수 있다. 그리고 $\mathbf{x}$와 관련 있는 분포에서 $\mathbf{z}$를 샘플링하므로, 앞에서 살펴본 분산 문제가 완화된다.
+
 유도 과정이 상당히 복잡해 보이지만, 결국 $p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 어떻게든 꺼내 이 분포에 대한 기댓값으로 바꾸기 위한 작업이다. 세 번째와 네 번째 등호에서는 $\nabla_{\theta} p_{\theta}(\mathbf{x}, \mathbf{z})$에서 $p_{\theta}(\mathbf{x}, \mathbf{z})$를 꺼내기 위해 로그함수를 사용했는데, 이 log-derivative trick은 통계학에서 자주 사용되는 아름다운 기술이다.
 
 ## E-M Algorithm
 
-Posterior를 구할 수 있을 때 **Expectation-Maximization algorithm (E-M)** 을 적용할 수 있다{{< ref 3 >}}. E-M algorithm은 신경망과 같이 복잡한 함수가 들어간 모델이 아직 사용되지 않던 20세기 후반에 등장했으며, 모델이 단순해 posterior를 해석적으로 구할 수 있을 때 강력한 성능을 발휘한다. 우리 맥락에서는 없어도 되지만, 매우 유명한 알고리즘이므로 잠깐 언급하려고 한다.
+Posterior를 구할 수 있을 때 **Expectation-Maximization algorithm (E-M)** 을 적용할 수 있다{{< ref 3 >}}. E-M algorithm은 신경망과 같이 복잡한 함수가 들어간 모델이 아직 사용되지 않던 20세기 후반에 등장했으며, 모델이 단순해 posterior를 해석적으로 구할 수 있을 때 강력한 성능을 발휘한다.
+
+우리는 식 {{< eqref marginal-as-posterior >}} (또는 이와 비슷한 방법) 을 이용해 경사 하강법으로 $\theta$를 찾으려고 하는데, E-M algorithm은 이 gradient를 직접 계산하는 대신 posterior를 활용해 다른 방식으로 $\theta$를 최적화하는 방법이다. 그래서 우리 맥락에서는 없어도 되지만, 매우 유명한 알고리즘이므로 잠깐 언급하려고 한다.
 
 E-M algorithm은 $\mathbf{z}$의 posterior distribution을 구하는 **E-step**과 $\theta$를 최적화하는 **M-step**을 번갈아가며 실행하는 알고리즘이다. 구체적인 방법은 다음과 같다.
 
@@ -204,7 +230,9 @@ $$
 
 # Bayesian Inference
 
-앞 절에서 posterior distribution $p_{\theta}(\mathbf{z} \mid \mathbf{x})$이 중요하다는 사실을 알게 되었다. Posterior에 대한 문제는 전통적으로 **베이지안 추론(Bayesian inference)** 이라는 분야에서 다루고 있다. 이 절에서는 베이지안 추론 방법들 중 MCMC와 variational Bayes를 살펴볼 것이다. VAE는 이 중 variational Bayes에서 강하게 영향을 받았다 (논문 제목에도 들어가 있다).
+앞 절에서 posterior distribution $p_{\theta}(\mathbf{z} \mid \mathbf{x})$이 중요하다는 사실을 알게 되었다. Posterior에 대한 문제는 전통적으로 **베이지안 추론(Bayesian inference)** 이라는 분야에서 다루고 있다. 베이지안 추론에서는 생성 문제보다 훨씬 넓은 범위의 문제를 연구하는데, 보통 '특정 현상이 일어났다. 어떤 잠재 변수와 매개변수에 의해 일어났을까?' 라는 질문에서 출발한다. 어떤 관측 데이터 $\mathbf{x}$가 주어졌을 때 $\mathbf{z}$나 $\theta$에 대해 알아내는 것은 결국 이들의 확률 분포인 posterior를 구하는 것과 같다.
+
+이 절에서는 베이지안 추론 방법들 중 MCMC와 variational Bayes를 살펴볼 것이다. VAE는 이 중 variational Bayes에서 강하게 영향을 받았다 (논문 제목에도 들어가 있다).
 
 이 절에서 풀고 싶은 문제는 다음과 같다.
 
@@ -217,9 +245,9 @@ Latent variable model에서, 하나의 관측 데이터 샘플 $\mathbf{x}$가 �
 {{< callout type="Note" >}}
 모든 불확실함을 어떤 확률분포를 따르는 확률 변수로 보는 관점을 베이즈주의라고 한다. 베이지안 추론은 이런 베이즈주의의 관점에서, 관측 가능한 변수를 바탕으로 관측 불가능한 변수의 분포를 알아내고자 하는 분야이다.
 
-우리는 지금까지 최적의 매개변수 $\theta$의 값을 구하는 데 초점을 맞추고 있었다. 하지만 베이즈주의에 따르면 매개변수 $\theta$도 확률 변수이기 때문에, $\theta$의 분포, 즉 prior를 고려해야 한다. 즉, 우리의 논의는 엄밀히 말해서는 완전히 베이지안(fully Bayesian)이 아니다.
+우리는 지금까지 최적의 매개변수 $\theta$의 값 하나를 구하는 데 초점을 맞추고 있었다. 하지만 베이즈주의에 따르면 매개변수 $\theta$도 확률 변수이기 때문에, $\theta$의 분포, 즉 prior를 고려해야 한다. 또한, $\theta$의 값 하나를 구하는 데서 만족하면 안 되고 $\theta$의 전체 posterior를 구해야 한다. 따라서, 우리의 논의는 엄밀히 말해서는 **완전히 베이지안(fully Bayesian)이 아니다**.
 
-이후에 설명할 MCMC나 variational Bayes는 편의상 $\theta$의 prior를 고려하지 않았다. 하지만 이 방법들은 원래는 $\theta$의 prior도 고려하는 fully Bayesian approach이다. 또한, 잠재 변수 $\mathbf{z}$ 없이 관측 데이터와 매개변수만 있는 상황에서도 적용할 수 있는 방법들이다.
+이후에 설명할 MCMC나 variational Bayes는 편의상 $\theta$를 확률 변수로 보지 않았다. 즉, $\theta$의 prior를 고려하지 않았고 posterior도 구하지 않았다. 하지만 이 방법들은 원래는 $\theta$도 확률 변수로 보는 fully Bayesian approach이다. 또한, 잠재 변수 $\mathbf{z}$ 없이 관측 데이터와 매개변수만 있는 상황에서도 적용할 수 있는 방법들이다.
 {{< /callout >}}
 
 ## Markov Chain Monte Carlo (MCMC)
@@ -362,7 +390,9 @@ $$
 
 ## Variational Bayes
 
-Posterior를 구하는 문제를 다른 관점으로 접근해 보자. 우리는 생성 모델을 학습시키기 위해 실제 데이터의 분포 $p_{\mathrm{data}}(\mathbf{x})$를 매개화된 확률 분포 $p_{\theta}(\mathbf{x})$로 근사하고 있다. 이제 우리는 하나의 샘플 $\mathbf{x}$가 주어졌을 때 posterior인 $p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 알고 싶은데, 비슷하게 '새로운 매개변수 $\phi$와 매개화된 확률 분포 $q_{\phi}(\mathbf{z})$를 도입해 $q_{\phi}(\mathbf{z}) \approx p_{\theta}(\mathbf{z} \mid \mathbf{x})$로 근사하자' 라는 아이디어를 활용할 수 있다. 이러한 접근 방법을 **variational Bayes**라고 한다. 'Variational'이라는 단어는 확률 변수의 분산(variation)과는 별 관련이 없고, 수학에서 최적의 함수를 찾는 분야인 변분법(calculus of variations)이나 변분 해석(variational analysis)에서 왔다.
+Posterior를 구하는 문제를 다른 관점으로 접근해 보자. 우리는 생성 모델을 학습시키기 위해 실제 데이터의 분포 $p_{\mathrm{data}}(\mathbf{x})$를 매개화된 확률 분포 $p_{\theta}(\mathbf{x})$로 근사하고 있다. 이제 우리는 하나의 샘플 $\mathbf{x}$가 주어졌을 때 posterior인 $p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 알고 싶은데, 비슷하게 '새로운 매개변수 $\phi$와 매개화된 확률 분포 $q_{\phi}(\mathbf{z})$를 도입해 $q_{\phi}(\mathbf{z}) \approx p_{\theta}(\mathbf{z} \mid \mathbf{x})$로 근사하자' 라는 아이디어를 활용할 수 있다. 물론, 이러한 $q_{\phi}(\mathbf{z})$가 유용하려면 샘플링이 가능하거나 밀도함수를 구할 수 있는 단순한 분포가 되어야 할 것이다.
+
+이러한 접근 방법을 **variational Bayes**라고 한다. 'Variational'이라는 단어는 확률 변수의 분산(variation)과는 별 관련이 없고, 수학에서 최적의 함수를 찾는 분야인 변분법(calculus of variations)이나 변분 해석(variational analysis)에서 왔다.
 
 지금까지 했던 대로, $p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 $q_{\phi}(\mathbf{z})$로 근사하는 것을 두 분포 사이의 KL divergence를 최소화하는 문제로 모델링하자. 그런데 여기서 생각해 봐야 하는 점이, 지금까지는 KL divergence에서 미지의 분포를 왼쪽에, 모델링하는 분포를 오른쪽에 두었다. 그런데 KL divergence는 비대칭적이기 때문에 이렇게 하는 것이 당연하지는 않다. 지금까지 미지의 분포를 왼쪽에 둔 이유는 [첫 포스트](../01-overview/#monte-carlo-approximation)에서 살펴보았듯이 미지의 분포를 오른쪽에 두면 몬테 카를로 근사가 불가능하기 때문이다. 그렇다면 이번에도 그럴까? 결론적으로 말하자면, 이번에는 반대로 미지의 분포를 오른쪽에 두어야 계산 가능한 식이 나온다. 일단 이걸 모른다고 생각하고, 둘 다 해보자.
 
@@ -494,20 +524,20 @@ ELBO $\mathcal{L}$이 marginal likelihood $\log p_{\theta}(\mathbf{x})$를 lower
 
 Variational Bayes는 MCMC와 달리 반복적인 샘플링 없이 최적화 문제를 풀어 posterior를 근사한다는 장점이 있다. 하지만 딥러닝에 적용하기에는 여전히 한계가 있다.
 
-가장 큰 문제는 각 샘플 $\mathbf{x}$마다 매개변수 $\phi$를 따로 최적화해야 한다. 이 문제는 MCMC에서도 동일하게 발생했었다. 데이터가 $N$개이면 $N$개의 서로 다른 최적화 문제를 풀어야 하므로, 샘플의 수가 많아지면 계산 비용이 급격히 증가한다. 또한, 학습 과정에서 $\theta$가 업데이트될 때마다 모든 $\phi$를 다시 최적화해야 한다. 이것이 variational Bayes를 바로 딥러닝에 적용할 수 없는 결정적인 이유이다.
+가장 큰 문제는 각 샘플 $\mathbf{x}$마다 매개변수 $\phi$를 따로 최적화해야 한다는 것이다.  데이터가 $N$개이면 $N$개의 서로 다른 최적화 문제를 풀어야 하므로, 샘플의 수가 많아지면 계산 비용이 급격히 증가한다. 또한, 학습 과정에서 $\theta$가 업데이트될 때마다 모든 $\phi$를 다시 최적화해야 한다. 이것이 variational Bayes를 바로 딥러닝에 적용할 수 없는 결정적인 이유이다. 딥러닝 모델을 제대로 학습시키기 위해서는 매우 많은 샘플이 필요하기 때문에다. 참고로, '샘플마다 따로 해야 한다'라는 문제는 MCMC에서도 동일하게 발생했었다.
 
 다른 문제로, $q_{\phi}(\mathbf{z})$를 단순하게 설정하면 posterior $p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 잘 표현하지 못하고, 표현력이 높은 복잡한 분포를 사용하면 최적화가 어려워진다는 딜레마가 있다. 이 점은 딥러닝에서 $q_{\phi}$를 신경망으로 모델링하면 어느 정도 해결할 수 있다. 대신 이렇게 정의된 $q_{\phi}$를 최적화하려면 경사 하강법이 필요하고, 그래서 몬테 카를로 근사를 통해 gradient를 계산해야 하는데, 그러면 식 
-{{< eqref high-variance-of-mc >}}에서 보았던 높은 분산 문제를 겪게 된다. 딥러닝에서 variational bayes의 아이디어를 적용하려면 이 문제를 반드시 해결해야 한다.
+{{< eqref high-variance-of-mc >}}에서 보았던 높은 분산 문제를 겪게 된다. 딥러닝에서 variational Bayes의 아이디어를 적용하려면 이 문제를 반드시 해결해야 한다.
 
 # 정리
 
 이번 포스트에서는 latent variable model을 구체적으로 살펴보고, marginal likelihood인 $p_{\theta}(\mathbf{x})$를 계산하기 어렵다는 문제를 확인했다. 이를 해결하기 위해서는 posterior $p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 구해야 하는데, 여기에 대한 세 가지 방법을 살펴보았다.
 
 - **E-M algorithm**: Posterior를 해석적으로 구할 수 있는 단순한 모델에서 강력하지만, 신경망 기반의 복잡한 모델에는 적용하기 어렵다.
-- **MCMC**: Posterior의 정규화 상수를 몰라도 샘플링이 가능하지만, 수렴이 느리고 매 step마다 긴 Markov chain을 돌려야 하므로 학습에 활용하기 어렵다.
-- **Variational Bayes**: Posterior를 근사하는 분포 $q_{\phi}(\mathbf{z})$를 최적화하는 방법으로, ELBO라는 목적 함수를 활용한다. 여전히 복잡한 모델에 적용하기 어렵다.
+- **MCMC**: Posterior의 정규화 상수를 몰라도 샘플링이 가능하지만, 수렴이 느리고 매 step마다 긴 Markov chain을 돌려야 하므로 복잡한 모델의 학습에 활용하기 어렵다.
+- **Variational Bayes**: Posterior를 근사하는 분포 $q_{\phi}(\mathbf{z})$를 최적화하는 방법으로, ELBO라는 목적 함수를 활용한다. 모든 관측 결과마다 다른 분포를 최적화시켜야 하므로, 마찬가지로 복잡한 모델에 적용하기 어렵다.
 
-다음 포스트에서는 딥러닝에서 이러한 한계들을 극복하는 방법에 대해 알아볼 것이다.
+여기에서 살펴본 방법들은 딥러닝 이전 단순한 모델들에서는 유용하지만, 딥러닝에는 적합하지 않다. 다음 포스트에서는 딥러닝에서 이러한 한계들을 극복하는 방법에 대해 알아볼 것이다.
 
 
 

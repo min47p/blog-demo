@@ -2,6 +2,7 @@
 title: "Classical Mechanics - 1. Newtonian Mechanics"
 date: 2026-02-02
 tags: ["physics", "classical-mechanics", "landau-mechanics"]
+draft: true
 ---
 
 고전 역학을 기술하는 다른 방법들인 뉴턴 역학, 라그랑주 역학, 해밀턴 역학을 차례대로 살펴보자. 우선 뉴턴 역학은 이미 익숙하므로 간략하게 서술했다.

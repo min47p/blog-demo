@@ -5,6 +5,8 @@ tags: ["machine-learning", "generative-models"]
 draft: false
 ---
 
+*이 글은 Claude Opus 4.6의 도움을 받아 작성했다.*
+
 첫 번째로 살펴볼 생성 모델은 autoregressive model이다. [지난 포스트](../01-overview/#idea-1-autoregressive-generation)에서 이미 autoregressive model에 대해서 간단히 살펴보았는데, 이 내용을 다시 정리하고 모델을 어떻게 학습시키는지까지 알아보자.
 
 # Autoregressive Model의 아이디어
