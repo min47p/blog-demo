@@ -31,7 +31,7 @@ tags: ["machine-learning", "generative-models"]
 
 문제를 수학적으로 모델링해 보자. 먼저 우리가 생성해야 할 데이터를 모델링하자. 생성할 데이터의 가능한 모든 값의 범위, 즉 도메인을 생각하고, 도메인의 원소를 $\mathbf{x}$로 나타내자. 만약 생성할 데이터에 조건이 붙어 있는 경우, 조건을 $\mathbf{c}$로 나타내자.
 
-다음으로 우리에게 주어진 것을 모델링하자. 우리는 데이터 $\mathbf{x}$ 또는 데이터와 조건의 조합 $(\mathbf{x}, \mathbf{c})$의 샘플을 충분히 확보할 수 있다. 샘플을 확보하는 방법은 매우 다양할 수 있지만, 이것을 수학적으로 모델링할 때는 우리가 원할 때 $\mathbf{x}$ 또는 $(\mathbf{x}, \mathbf{c})$를 던져 주는 oracle이 있다고 가정하는 것이 편리하다. 또한, 이 oracle은 어떤 **확률 분포**에서 샘플을 랜덤하게 골라서 우리에게 던져 준다고 가정하는 것이 편리하다. 이 확률 분포를 실제 데이터의 확률 분포라는 의미에서 $p_{\mathrm{data}}$라고 부르자. 일반적으로 $N$ 개의 샘플 $\mathbf{x}_{1}$, $\cdots$, $\mathbf{x}_{N}$ (또는 조건을 포함한 샘플 $(\mathbf{x}_{1}, \mathbf{c}_{1})$, $\cdots$, $(\mathbf{x}_{N}, \mathbf{c}_{N})$)이 있을 때, 이 샘플들은 모두 동일한 확률 분포 $p_\mathrm{data}$에서 독립적으로 랜덤 샘플링되었다고 가정한다 (IID: independent and identically distributed). 마찬가지로 편리해서 그렇다.
+다음으로 우리에게 주어진 것을 모델링하자. 우리는 데이터 $\mathbf{x}$ 또는 데이터와 조건의 조합 $(\mathbf{x}, \mathbf{c})$의 샘플을 충분히 확보할 수 있다. 샘플을 확보하는 방법은 매우 다양할 수 있지만, 이것을 수학적으로 모델링할 때는 우리가 원할 때 $\mathbf{x}$ 또는 $(\mathbf{x}, \mathbf{c})$를 던져 주는 oracle이 있다고 가정하는 것이 편리하다. 또한, 이 oracle은 어떤 **확률 분포**에서 샘플을 랜덤하게 골라서 우리에게 던져 준다고 가정하는 것이 편리하다. 이 확률 분포를 실제 데이터의 확률 분포라는 의미에서 $p_{\mathrm{data}}$라고 부르자. 일반적으로 $N$ 개의 샘플 $\mathbf{x}^{(1)}$, $\cdots$, $\mathbf{x}^{(N)}$ (또는 조건을 포함한 샘플 $(\mathbf{x}^{(1)}, \mathbf{c}^{(1)})$, $\cdots$, $(\mathbf{x}^{(N)}, \mathbf{c}^{(N)})$)이 있을 때, 이 샘플들은 모두 동일한 확률 분포 $p_\mathrm{data}$에서 독립적으로 랜덤 샘플링되었다고 가정한다 (IID: independent and identically distributed). 마찬가지로 편리해서 그렇다.
 
 다음으로 우리의 목표를 모델링하자. 먼저 조건 $\mathbf{c}$가 주어지지 않은 경우, 즉 실제 데이터와 구분되지 않는 데이터 $\mathbf{x}$를 생성하고자 하는 문제를 보자. 이때 우리의 목표는 oracle을 거치지 않고 oracle이 가진 확률 분포 $p_{\mathrm{data}}(\mathbf{x})$에서 데이터 $\mathbf{x}$를 샘플링하는 것이 된다. 하지만 우리가 oracle에서 얻은 $N$ 개의 샘플만으로 $p_{\mathrm{data}}(\mathbf{x})$를 정확히 알아내는 것은 물론 불가능하다. 따라서 우리는 주어진 샘플을 이용해 $p_{\mathrm{data}}(\mathbf{x})$와 **최대한 가까운 확률 분포** $p(\mathbf{x})$를 얻은 다음, $p$에서 $\mathbf{x}$를 샘플링하는 것을 목표로 하게 된다. 즉,
 $$p(\mathbf{x}) \approx p_{\mathrm{data}}(\mathbf{x})$$
@@ -56,22 +56,22 @@ $p(\mathbf{x})$라는 기호를 '$\mathbf{x}$가 따르는 확률 분포'라는 
 이제 방금 사용한 '최대한 가까운 확률 분포'라는 표현을 수학적으로 정의할 필요가 있다. 여기에서 우리의 목표를 다시 적어 보면,
 
 {{< callout type="Goal" >}}
-$p_{\mathrm{data}}(\mathbf{x})$에서 IID 샘플링한 데이터 $\mathbf{x}_{1}$, $\cdots$, $\mathbf{x}_{N}$이 있다. 이것을 이용해 $p(\mathbf{x}) \approx p_\mathrm{data} (\mathbf{x})$인 $p$를 찾자.
+$p_{\mathrm{data}}(\mathbf{x})$에서 IID 샘플링한 데이터 $\mathbf{x}^{(1)}$, $\cdots$, $\mathbf{x}^{(N)}$이 있다. 이것을 이용해 $p(\mathbf{x}) \approx p_\mathrm{data} (\mathbf{x})$인 $p$를 찾자.
 {{< /callout >}}
 
 이 문제의 어려움은 실제 확률 분포의 밀도함수의 값 $p_{\mathrm{data}}(\mathbf{x})$을 알아낼 수 없다는 점에 있다. 실제 분포와 관련해서 우리가 접근할 수 있는 것은 오직 $N$개의 샘플 뿐이다. 하지만, 우리가 궁극적으로 원하는 것은 우리 마음대로 샘플링이 가능한 분포 $p$이고, 샘플링을 하기 위해서는 밀도함수 $p(\mathbf{x})$에 대한 정보를 어떻게든 가지고 있어야 한다. (밀도함수 $p(\mathbf{x})$의 정보를 어디까지 알아내야 샘플링이 가능할지는 상황에 따라 다르다.)
 
 {{< callout type="Note" >}}
-사실 $N$이 매우 크면 샘플 $\mathbf{x}_{i}$를 통해 밀도함수 $p_{\mathrm{data}}$를 충분히 근사할 수 있는 것은 맞다. 하지만 우리가 관심 있는 이미지나 텍스트처럼 고차원의 데이터가 주어졌을 경우 우리에게 유용한 수준까지 밀도함수를 근사하기 위해서는 어마어마하게 큰 $N$이 필요하다. 따라서 '밀도함수에 대한 정보는 얻을 수 없다'라고 보아야 한다.
+사실 $N$이 매우 크면 샘플 $\mathbf{x}^{(n)}$를 통해 밀도함수 $p_{\mathrm{data}}$를 충분히 근사할 수 있는 것은 맞다. 하지만 우리가 관심 있는 이미지나 텍스트처럼 고차원의 데이터가 주어졌을 경우 우리에게 유용한 수준까지 밀도함수를 근사하기 위해서는 어마어마하게 큰 $N$이 필요하다. 따라서 '밀도함수에 대한 정보는 얻을 수 없다'라고 보아야 한다.
 {{< /callout >}}
 
 ## 매개화된 확률 분포
 
-실제 분포에 대한 정보가 워낙 제한되어 있기 때문에, 우리가 해볼 수 있는 가정은 몇 가지 없다. 그 중 하나는 '우리가 가지고 있는 샘플 $\mathbf{x}_{i}$에서는 밀도함수 $p_{\mathrm{data}}(\mathbf{x}_{i})$가 높지 않을까?'라는 것이다. 이 가정은 너무나 말이 되는 것이, 밀도함수 $p_{\mathrm{data}}(\mathbf{x})$가 높을수록 $\mathbf{x}$가 샘플로 나올 가능성이 높아지기 때문이다. 그런 의미에서 우리는 샘플에서 $p$의 밀도함수의 값, 즉 $p(\mathbf{x}_{1})$, $\cdots$, $p(\mathbf{x}_{N})$을 최대화하면 $p$가 $p_{\mathrm{data}}$에 가까워지지 않을까? 라고 기대할 수 있다.
+실제 분포에 대한 정보가 워낙 제한되어 있기 때문에, 우리가 해볼 수 있는 가정은 몇 가지 없다. 그 중 하나는 '우리가 가지고 있는 샘플 $\mathbf{x}^{(n)}$에서는 밀도함수 $p_{\mathrm{data}}(\mathbf{x}^{(n)})$가 높지 않을까?'라는 것이다. 이 가정은 너무나 말이 되는 것이, 밀도함수 $p_{\mathrm{data}}(\mathbf{x})$가 높을수록 $\mathbf{x}$가 샘플로 나올 가능성이 높아지기 때문이다. 그런 의미에서 우리는 샘플에서 $p$의 밀도함수의 값, 즉 $p(\mathbf{x}^{(1)})$, $\cdots$, $p(\mathbf{x}^{(N)})$을 최대화하면 $p$가 $p_{\mathrm{data}}$에 가까워지지 않을까? 라고 기대할 수 있다.
 
 그런데 여기에서 극단적인 예시를 하나 만들어 보자. $p$가 다음과 같이 정의된 이산 확률 분포라고 하자.
-$$p(\mathbf{x}_{i}) = \frac{1}{N} \; , \qquad i = 1, \cdots , N$$
-즉, $p$는 우리가 가지고 있는 $N$개의 샘플 중 하나를 균일한 확률로 샘플링할 수 있고, 다른 데이터는 샘플링할 수 없는 확률 분포이다. 이러한 확률 분포 $p$는 명백히 $p(\mathbf{x}_{1})$, $\cdots$, $p(\mathbf{x}_{N})$을 최대화하려는 목표와 일치한다. 하지만 이런 방식으로는 이미 가지고 있는 샘플 외의 새로운 데이터는 얻을 수 없기에, 우리의 실제 목표와는 매우 멀다. 그리고 ($N$이 어마어마하게 크지 않은 이상) '$p$가 $p_{\mathrm{data}}$에 유사하다'라는 주장에 동의하는 사람도 없을 것이다.
+$$p(\mathbf{x}^{(n)}) = \frac{1}{N} \; , \qquad n = 1, \cdots , N$$
+즉, $p$는 우리가 가지고 있는 $N$개의 샘플 중 하나를 균일한 확률로 샘플링할 수 있고, 다른 데이터는 샘플링할 수 없는 확률 분포이다. 이러한 확률 분포 $p$는 명백히 $p(\mathbf{x}^{(1)})$, $\cdots$, $p(\mathbf{x}^{(N)})$을 최대화하려는 목표와 일치한다. 하지만 이런 방식으로는 이미 가지고 있는 샘플 외의 새로운 데이터는 얻을 수 없기에, 우리의 실제 목표와는 매우 멀다. 그리고 ($N$이 어마어마하게 크지 않은 이상) '$p$가 $p_{\mathrm{data}}$에 유사하다'라는 주장에 동의하는 사람도 없을 것이다.
 
 위의 예시를 통해, 아무런 제약 없이 $p$를 찾으면 원하지 않는 결과가 나올 수 있다는 것을 알 수 있다. 따라서 $p$가 가질 수 있는 형태를 미리 제한할 필요가 있다. 통계학이나 기계 학습에서는 이렇게 고려 대상이 되는 확률 분포들의 집합을 **모델(model)**이라 부른다.
 
@@ -81,26 +81,26 @@ $$p(\mathbf{x}_{i}) = \frac{1}{N} \; , \qquad i = 1, \cdots , N$$
 
 ## Maximum Likelihood Estimation
 
-이제 '최대한 가까운'을 정의할 차례이다. 앞에서의 논의는 여전히 유효한데, 샘플에서의 밀도함수 $p_{\theta}(\mathbf{x}_{i})$가 클수록 $p_{\mathrm{data}}$에 가까운 확률분포라는 것이다. $p_{\theta}(\mathbf{x}_{i})$라는 식은 원래 매개변수 $\theta$를 가진 확률 분포에서 $\mathbf{x}_{i}$의 밀도라는 의미이지만, 여기에서는 반대로 샘플 $\mathbf{x}_{i}$가 주어졌을 때 매개변수 $\theta$가 얼마나 '좋은' 매개변수인지 평가하는 역할을 하고 있다. 이것을 샘플 $\mathbf{x}_{i}$가 주어졌을 때 매개변수 $\theta$의 가능도(likelihood)라고 하고, $\mathcal{L}(\theta \mid \mathbf{x}_{i})$로 나타낸다.
-$$\mathcal{L}(\theta \mid \mathbf{x}_{i}) = p_{\theta}(\mathbf{x}_{i})$$
+이제 '최대한 가까운'을 정의할 차례이다. 앞에서의 논의는 여전히 유효한데, 샘플에서의 밀도함수 $p_{\theta}(\mathbf{x}^{(n)})$가 클수록 $p_{\mathrm{data}}$에 가까운 확률분포라는 것이다. $p_{\theta}(\mathbf{x}^{(n)})$라는 식은 원래 매개변수 $\theta$를 가진 확률 분포에서 $\mathbf{x}^{(n)}$의 밀도라는 의미이지만, 여기에서는 반대로 샘플 $\mathbf{x}^{(n)}$가 주어졌을 때 매개변수 $\theta$가 얼마나 '좋은' 매개변수인지 평가하는 역할을 하고 있다. 이것을 샘플 $\mathbf{x}^{(n)}$가 주어졌을 때 매개변수 $\theta$의 가능도(likelihood)라고 하고, $\mathcal{L}(\theta \mid \mathbf{x}^{(n)})$로 나타낸다.
+$$\mathcal{L}(\theta \mid \mathbf{x}^{(n)}) = p_{\theta}(\mathbf{x}^{(n)})$$
 
 $N$개의 샘플이 $p_{\mathrm{data}}$로부터 얻은 IID 샘플이므로, $N$개의 샘플 전체가 주어졌을 때 $\theta$의 가능도를 다음과 같이 정의할 수 있다. 독립성에 의해 각각의 샘플에 의한 가능도의 곱으로 나타난다.
-$$\mathcal{L}(\theta \mid \mathbf{x}_{1}, \cdots, \mathbf{x}_{N}) = \prod_{i} p_{\theta} (\mathbf{x}_{i}) = \prod_{i} \mathcal{L}(\theta \mid \mathbf{x}_{i})$$
+$$\mathcal{L}(\theta \mid \mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)}) = \prod_{n} p_{\theta} (\mathbf{x}^{(n)}) = \prod_{n} \mathcal{L}(\theta \mid \mathbf{x}^{(n)})$$
 
 드디어 우리의 목표를 제대로 정의할 수 있다. 가능도가 클수록 좋은 매개변수이므로, 우리는 다음을 만족하는 $\theta$를 찾고 싶다.
 $$\begin{aligned}
-\theta &= \argmax_{\theta} \; \mathcal{L}(\theta \mid \mathbf{x}_{1}, \cdots, \mathbf{x}_{N}) \\
-&= \argmax_{\theta} \; \prod_{i} p_{\theta}(\mathbf{x}_{i})
+\theta &= \argmax_{\theta} \; \mathcal{L}(\theta \mid \mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)}) \\
+&= \argmax_{\theta} \; \prod_{n} p_{\theta}(\mathbf{x}^{(n)})
 \end{aligned}$$
 
-위 식의 우변에는 $p_{\mathrm{data}}$의 밀도함수와 관련된 항이 등장하지 않는다. 오직 샘플 $\mathbf{x}_{1}$, $\cdots$, $\mathbf{x}_{N}$과 우리가 이미 형태를 알고 있는 함수 $p_{\theta}$ 뿐이다. 따라서 우리가 해결할 수 있는 최적화 형태의 문제를 얻었다.
+위 식의 우변에는 $p_{\mathrm{data}}$의 밀도함수와 관련된 항이 등장하지 않는다. 오직 샘플 $\mathbf{x}^{(1)}$, $\cdots$, $\mathbf{x}^{(N)}$과 우리가 이미 형태를 알고 있는 함수 $p_{\theta}$ 뿐이다. 따라서 우리가 해결할 수 있는 최적화 형태의 문제를 얻었다.
 
 곱보다는 합이 다루기 편리하므로, 로그가능도(log-likelihood)를 $\ell(\theta \mid \mathbf{x}) = \log \mathcal{L}(\theta \mid \mathbf{x})$로 정의하면 위 식을 더 편하게 다룰 수 있다.
 
 $$\begin{aligned}
-\theta &= \argmax_{\theta} \; \ell(\theta \mid \mathbf{x}_{1}, \cdots, \mathbf{x}_{N})\\
-&= \argmax_{\theta} \; \log \left( \prod _{i} p_{\theta}(\mathbf{x}_{i}) \right)\\
-&= \argmax_{\theta} \; \sum _{i} \log p_{\theta}(\mathbf{x}_{i})
+\theta &= \argmax_{\theta} \; \ell(\theta \mid \mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)})\\
+&= \argmax_{\theta} \; \log \left( \prod _{n} p_{\theta}(\mathbf{x}^{(n)}) \right)\\
+&= \argmax_{\theta} \; \sum _{n} \log p_{\theta}(\mathbf{x}^{(n)})
 \end{aligned}$$
 
 이처럼 확률 분포의 매개변수를 구하기 위해 가능도를 최대화하는 최적화 문제를 활용하는 방법을 최대 가능도 추정(MLE, Maximum Likelihood Estimation)이라 한다. 20세기 초 R. Fisher가 정립한 이후 널리 활용되고 있다.
@@ -108,21 +108,21 @@ $$\begin{aligned}
 {{< callout type="Note" >}}
 MLE에서는 모든 매개변수를 평등하게 대하고 있다. 하지만 베이지안 통계에서는 매개변수 $\theta$를 확률 변수로 간주한 뒤, $\theta$의 사전 확률 분포(prior distribution)을 고려하기도 한다. 이 방법을 maximum a posteriori estimation (MAP)라 한다.
 
-MLE에서 어떤 매개변수 $\theta$가 얼마나 '좋은지' 나타내는 척도로 가능도 $\mathcal{L}(\theta \mid \mathbf{x}_{1}, \cdots, \mathbf{x}_{N}) = p_{\theta}(\mathbf{x}_{1}, \cdots, \mathbf{x}_{N})$을 사용했다. MAP에서는 이와 같은 척도로 사후 확률 분포(posterior distribution) $p(\theta \mid \mathbf{x}_{1}, \cdots, \mathbf{x}_{N})$를 활용한다. 이것이 가능한 이유는 매개변수 $\theta$를 확률 변수로 보고 있기 때문이다.
+MLE에서 어떤 매개변수 $\theta$가 얼마나 '좋은지' 나타내는 척도로 가능도 $\mathcal{L}(\theta \mid \mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)}) = p_{\theta}(\mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)})$을 사용했다. MAP에서는 이와 같은 척도로 사후 확률 분포(posterior distribution) $p(\theta \mid \mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)})$를 활용한다. 이것이 가능한 이유는 매개변수 $\theta$를 확률 변수로 보고 있기 때문이다.
 
 $\theta$의 사전 확률 분포를 $p(\theta)$라 하면, 이 조건부 확률은 베이즈 정리에 의해 다음과 같이 구할 수 있다.
 $$
-p(\theta \mid \mathbf{x}_{1}, \cdots, \mathbf{x}_{N}) = \frac{p(\mathbf{x}_{1}, \cdots, \mathbf{x}_{N} \mid \theta) \;p(\theta)}{\int p(\mathbf{x}_{1}, \cdots, \mathbf{x}_{N} \mid \theta) \;p(\theta) \; d\theta}
+p(\theta \mid \mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)}) = \frac{p(\mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)} \mid \theta) \;p(\theta)}{\int p(\mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)} \mid \theta) \;p(\theta) \; d\theta}
 $$
 
-$p(\mathbf{x}_{1}, \cdots, \mathbf{x}_{N} \mid \theta)$는 다름 아닌 $p_{\theta}(\mathbf{x}_{1}, \cdots, \mathbf{x}_{N})$이다. 분모의 적분은 너무 복잡해서 계산할 수 없지만, $\theta$와 무관한 상수이므로 최적화 문제에서 무시할 수 있다. 이제 이 값을 최대화하는 $\theta$를 구하는 최적화 문제를 생각해 보면,
+$p(\mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)} \mid \theta)$는 다름 아닌 $p_{\theta}(\mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)})$이다. 분모의 적분은 너무 복잡해서 계산할 수 없지만, $\theta$와 무관한 상수이므로 최적화 문제에서 무시할 수 있다. 이제 이 값을 최대화하는 $\theta$를 구하는 최적화 문제를 생각해 보면,
 
 $$\begin{aligned}
-\theta &= \argmax_{\theta} \; p(\theta \mid \mathbf{x}_{1}, \cdots, \mathbf{x}_{N}) \\
-&= \argmax_{\theta} \frac{p(\mathbf{x}_{1}, \cdots, \mathbf{x}_{N} \mid \theta) \;p(\theta)}{\int p(\mathbf{x}_{1}, \cdots, \mathbf{x}_{N} \mid \theta) \;p(\theta) \; d\theta} \\
-&= \argmax_{\theta} \; p_{\theta}(\mathbf{x}_{1}, \cdots, \mathbf{x}_{N}) \; p(\theta)\\
-&= \argmax_{\theta} \; p(\theta) \prod_{i} p_{\theta}(\mathbf{x}_{i})\\
-&= \argmax_{\theta} \left(\log p(\theta) + \sum_{i} \log p_{\theta}(\mathbf{x}_{i}) \right)
+\theta &= \argmax_{\theta} \; p(\theta \mid \mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)}) \\
+&= \argmax_{\theta} \frac{p(\mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)} \mid \theta) \;p(\theta)}{\int p(\mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)} \mid \theta) \;p(\theta) \; d\theta} \\
+&= \argmax_{\theta} \; p_{\theta}(\mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)}) \; p(\theta)\\
+&= \argmax_{\theta} \; p(\theta) \prod_{n} p_{\theta}(\mathbf{x}^{(n)})\\
+&= \argmax_{\theta} \left(\log p(\theta) + \sum_{n} \log p_{\theta}(\mathbf{x}^{(n)}) \right)
 \end{aligned}
 $$
 
@@ -163,10 +163,10 @@ $$\begin{aligned}
 &= \argmax_{\theta} \; \mathbb{E}_{\mathbf{x} \sim p_{\mathrm{data}}(\mathbf{x})} \left[\log p_{\theta}(\mathbf{x})\right]
 \end{aligned}$$
 
-이제 우리가 가지고 있는 샘플 $\mathbf{x}_{1}$, $\cdots$, $\mathbf{x}_{N}$을 이용해 기댓값을 근사하면 다음과 같이 풀 수 있는 식을 얻는다.
+이제 우리가 가지고 있는 샘플 $\mathbf{x}^{(1)}$, $\cdots$, $\mathbf{x}^{(N)}$을 이용해 기댓값을 근사하면 다음과 같이 풀 수 있는 식을 얻는다.
 
 {{< eqlabel mle-approx >}}
-$$\theta = \argmax_{\theta} \; \frac{1}{N} \sum_{i=1}^{N} \log p_{\theta}(\mathbf{x}_{i})$$
+$$\theta = \argmax_{\theta} \; \frac{1}{N} \sum_{n=1}^{N} \log p_{\theta}(\mathbf{x}^{(n)})$$
 
 이것은 앞에서 살펴본 MLE와 동일한 식이다. 즉, KL divergence를 최소화하는 것과 MLE는 같은 최적화 문제를 풀고 있다. 통계학이나 딥러닝에서는 divergence를 최소화하는 것을 더 자연스러운 접근으로 본다. 따라서 위의 논의는 MLE에 정당성을 부여해 주는 것이 된다.
 
@@ -198,7 +198,7 @@ $$
 \theta = \argmin_{\theta} \; J(\theta)
 $$
 
-여기에서 $J(\theta)$는 목적 함수(objective function)이다. 예를 들어, MLE의 예시에서는 $J(\theta) = -\sum_{i} \log p_{\theta}(\mathbf{x}_{i})$이다.
+여기에서 $J(\theta)$는 목적 함수(objective function)이다. 예를 들어, MLE의 예시에서는 $J(\theta) = -\sum_{n} \log p_{\theta}(\mathbf{x}^{(n)})$이다.
 
 최적화 문제를 해결하는 방법은 다양하다. 예를 들어 라그랑주 승수법, 담금질 기법(simulated annealing) 등이 있다. 딥러닝에서는 경사 하강법(gradient descent method)과 그 변형 알고리즘들을 사용하는 것이 가장 적합하다.
 
@@ -211,22 +211,22 @@ $$\theta \leftarrow \theta - \eta \nabla_{\theta} J(\theta)$$
 
 여기서 $\eta > 0$는 한 번에 얼마나 이동할지를 결정하는 하이퍼파라미터이다. 이 업데이트를 반복하면 $J(\theta)$가 극솟값에 수렴하게 된다.
 
-경사 하강법에 대해 구체적으로 서술하지는 않을 것이다. 하지만 여기에서 언급한 이유는 최적화 문제를 풀기 위해서는 $J$가 $\theta$에 대해 미분 가능해야 한다는 점을 강조하기 위해서이다. $J$에는 보통 $\log p_{\theta}(\mathbf{x}_{i})$가 포함되어 있으므로, $p_{\theta}(\mathbf{x}_{i})$가 $\theta$로 미분가능해야 한다. 이것은 우리가 설정한 매개변수화된 확률 분포 $p_{\theta}$가 만족해야 하는 중요한 조건이다.
+경사 하강법에 대해 구체적으로 서술하지는 않을 것이다. 하지만 여기에서 언급한 이유는 최적화 문제를 풀기 위해서는 $J$가 $\theta$에 대해 미분 가능해야 한다는 점을 강조하기 위해서이다. $J$에는 보통 $\log p_{\theta}(\mathbf{x}^{(n)})$가 포함되어 있으므로, $p_{\theta}(\mathbf{x}^{(n)})$가 $\theta$로 미분가능해야 한다. 이것은 우리가 설정한 매개변수화된 확률 분포 $p_{\theta}$가 만족해야 하는 중요한 조건이다.
 
 ## Monte Carlo Approximation
 
 최적화 문제를 푸는 방법과 관련해서 언급할 내용이 한 가지 더 있다. 딥러닝에서의 목적 함수는 식 {{< eqref kl-objective >}}와 같이 기댓값을 포함하고 있는 경우가 많다. 일반적으로 $\mathbb{E}_{\mathbf{x} \sim p(\mathbf{x})} [f(\mathbf{x})]$와 같은 식의 값을 정확히 계산하는 것은 $p$와 $f$가 단순하지 않은 이상 불가능하다. 왜냐하면 다음과 같은 복잡한 적분 형태로 표현되기 때문이다.
 {{< eqlabel expectation-integral >}}
 $$\mathbb{E}_{\mathbf{x} \sim p(\mathbf{x})} [f(\mathbf{x})] = \int f(\mathbf{x}) p(\mathbf{x})\; d\mathbf{x}$$
-하지만 $p(\mathbf{x})$에서 샘플 $\mathbf{x}_{1}$, $\cdots$, $\mathbf{x}_{N}$을 추출할 수 있다면, 기댓값을 다음과 같이 근사할 수 있다.
+하지만 $p(\mathbf{x})$에서 샘플 $\mathbf{x}^{(1)}$, $\cdots$, $\mathbf{x}^{(N)}$을 추출할 수 있다면, 기댓값을 다음과 같이 근사할 수 있다.
 
-$$\mathbb{E}_{\mathbf{x} \sim p(\mathbf{x})} [f(\mathbf{x})] \approx \frac{1}{N} \sum_{i=1}^{N} f(\mathbf{x}_{i}), \quad \mathbf{x}_{i} \sim p(\mathbf{x})$$
+$$\mathbb{E}_{\mathbf{x} \sim p(\mathbf{x})} [f(\mathbf{x})] \approx \frac{1}{N} \sum_{n=1}^{N} f(\mathbf{x}^{(n)}), \quad \mathbf{x}^{(n)} \sim p(\mathbf{x})$$
 
 이러한 방법을 몬테 카를로 근사(Monte Carlo approximation)라 한다. 큰 수의 법칙(LLN, Law of Large Numbers)에 의해 $N \to \infty$일 때 우변이 좌변에 수렴하는 것이 보장된다. 앞에서 식 {{< eqref mle-approx >}}을 식 {{< eqref kl-objective >}}의 기댓값을 $N$개의 샘플로 근사하여 얻은 것도 같은 원리이다.
 
 사실 우리는 식 {{< eqref gradient-descent >}}을 적용한 경사 하강법으로 최적화 문제를 풀어야 하므로, 식 {{< eqref kl-objective >}}의 기댓값 자체가 아니라 $\theta$에 대한 gradient가 필요하다. 다행히, 이 값도 마찬가지로 몬테 카를로 근사를 통해 구할 수 있다. 적절한 조건 아래에서는 $\nabla$ (미분)과 $\mathbb{E}$ (적분)을 교환할 수 있기 때문이다. 이 조건은 딥러닝에서는 보통 성립한다.
 
-$$\nabla_{\theta} \mathbb{E}_{\mathbf{x} \sim p_{\mathrm{data}}(\mathbf{x})} [\log p_{\theta}(\mathbf{x})] = \mathbb{E}_{\mathbf{x} \sim p_{\mathrm{data}}(\mathbf{x})} [\nabla_{\theta} \log p_{\theta}(\mathbf{x})] \approx \frac{1}{N} \sum_{i=1}^{N} \nabla_{\theta} \log p_{\theta}(\mathbf{x}_{i})$$
+$$\nabla_{\theta} \mathbb{E}_{\mathbf{x} \sim p_{\mathrm{data}}(\mathbf{x})} [\log p_{\theta}(\mathbf{x})] = \mathbb{E}_{\mathbf{x} \sim p_{\mathrm{data}}(\mathbf{x})} [\nabla_{\theta} \log p_{\theta}(\mathbf{x})] \approx \frac{1}{N} \sum_{n=1}^{N} \nabla_{\theta} \log p_{\theta}(\mathbf{x}^{(n)})$$
 
 몬테 카를로 근사를 사용하기 위해서는 (1) 기댓값의 확률 분포에서 샘플링이 가능하고, (2) 피적분함수 $f(\mathbf{x})$의 값을 계산할 수 있어야 한다. 이 조건 중 하나라도 만족하지 못하면 몬테 카를로 근사를 적용할 수 없다.
 
@@ -387,9 +387,9 @@ $r$의 분포는 다음과 같이 구할 수 있다. 야코비안 $r$을 곱하�
 
 ### 다변량 정규 분포
 
-마지막으로 **다변량 정규 분포(multivariate normal distribution)** 를 알아보자. 균등 분포와 표준 정규 분포에서는 1차원 확률변수를 다루었지만, 여기에서는 변수의 차원이 $d$로 늘어난다. 평균 $\boldsymbol{\mu}$와 공분산 행렬 $\boldsymbol{\Sigma}$를 가진 $d$차원 정규 분포 $\mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})$는 아래와 같이 정의된다.
+마지막으로 **다변량 정규 분포(multivariate normal distribution)** 를 알아보자. 균등 분포와 표준 정규 분포에서는 1차원 확률변수를 다루었지만, 여기에서는 변수의 차원이 $d$로 늘어난다. 평균 $\boldsymbol{\mu}$와 공분산 행렬 $\boldsymbol{\Sigma}$를 가진 $d$차원 정규 분포 $\mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})$는 밀도함수를 이용해 아래와 같이 정의된다. 이 밀도함수를 $\mathcal{N}(\mathbf{x}; \boldsymbol{\mu}, \boldsymbol{\Sigma})$로 표기한다.
 
-$$p_{\theta}(\mathbf{x}) = \frac{1}{(2\pi)^{d/2} |\boldsymbol{\Sigma}|^{1/2}} \exp\left( -\frac{1}{2} (\mathbf{x} - \boldsymbol{\mu})^{\top} \boldsymbol{\Sigma}^{-1} (\mathbf{x} - \boldsymbol{\mu}) \right)$$
+$$\mathcal{N}(\mathbf{x}; \boldsymbol{\mu}, \boldsymbol{\Sigma}) = \frac{1}{(2\pi)^{d/2} |\boldsymbol{\Sigma}|^{1/2}} \exp\left( -\frac{1}{2} (\mathbf{x} - \boldsymbol{\mu})^{\top} \boldsymbol{\Sigma}^{-1} (\mathbf{x} - \boldsymbol{\mu}) \right)$$
 
 다변량 정규 분포는 $d$ 개의 단일 변수 표준 정규 분포를 따르는 변수들을 선형 변환해서 샘플링할 수 있다. 구체적인 방법은 다음과 같다.
 
@@ -469,7 +469,7 @@ $$p_{\theta}(\mathbf{x}) = \int p_{\theta}(\mathbf{x}, \mathbf{z}) \, d\mathbf{z
 
 여기에서 $p_{\theta}(\mathbf{z})$는 잠재 변수의 사전 분포이고, $p_{\theta}(\mathbf{x} \mid \mathbf{z})$는 잠재 변수가 주어졌을 때 데이터의 조건부 분포이다. 이 두 분포는 일반적으로 단순한 분포가 되도록 정의한다. 예를 들어, $p_{\theta}(\mathbf{z})$를 표준 정규 분포로, $p_{\theta}(\mathbf{x} \mid \mathbf{z})$를 $\mathbf{z}$에 의해 평균과 분산이 결정되는 정규 분포로 설정할 수 있다. 즉, $\boldsymbol{\mu}_{\theta}(\mathbf{z})$와 $\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$가 결정론적인 함수일 때, 다음과 같이 정의할 수 있다. ($\mathbf{z}$의 분포가 표준 정규 분포가 되면 더 이상 $\theta$에 의존하지 않게 되므로 아래첨자를 생략했다.)
 
-$$p(\mathbf{z}) = \mathcal{N}(\mathbf{0}, \mathbf{I}), \qquad p_{\theta}(\mathbf{x} \mid \mathbf{z}) = \mathcal{N}(\boldsymbol{\mu}_{\theta}(\mathbf{z}), \boldsymbol{\Sigma}_{\theta}(\mathbf{z}))$$
+$$p(\mathbf{z}) = \mathcal{N}(\mathbf{z};\, \mathbf{0}, \mathbf{I}), \qquad p_{\theta}(\mathbf{x} \mid \mathbf{z}) = \mathcal{N}(\mathbf{x};\, \boldsymbol{\mu}_{\theta}(\mathbf{z}), \boldsymbol{\Sigma}_{\theta}(\mathbf{z}))$$
 
 두 분포를 이렇게 단순하게 설정하면 표현력이 부족하지 않을까라는 의문이 들 수 있다. 하지만 $\boldsymbol{\mu}_{\theta}(\mathbf{z})$와 $\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$ 신경망으로 모델링하면 $\mathbf{z}$마다 서로 다른 단순한 분포가 만들어진다. 이를 $p_{\theta}(\mathbf{z})$에 대해 적분하면 무수히 많은 단순한 분포가 합쳐져 $p_{\theta}(\mathbf{x})$라는 복잡한 분포를 표현할 수 있게 된다.
 

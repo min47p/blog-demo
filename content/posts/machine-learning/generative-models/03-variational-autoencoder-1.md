@@ -15,11 +15,17 @@ VAE가 만들어진 맥락을 이해하기 위해, 확률 모델에 대한 전�
 
 먼저 이전 포스트에서 간단하게 살펴보았던 latent variable model에 대해 더 알아보자.
 
-## 세 가지 확률 변수
+## 잠재 변수
 
 지금부터 다룰 모델에는 세 가지 변수가 등장한다. 관측 데이터 $\mathbf{x}$, 잠재 변수 $\mathbf{z}$, 그리고 매개변수 $\theta$이다.
 
-**관측 데이터(observed data)** 는 우리가 실제로 관측하고 수집할 수 있는 데이터이다. **잠재 변수(latent variable)** 나 **매개변수(parameter)** 는 우리가 관측할 수 없고, 존재한다고 가정하고 있는 값이다. 이 두 변수는 모델이 관측 데이터의 분포를 설명하기 위해 도입한 변수이며, 역할이 다르다. 잠재 변수는 각 관측 데이터마다 서로 다른 값을 가질 수 있다. 반면, 모든 관측 데이터는 같은 매개변수를 공유한다.
+**관측 데이터(observed data)** $\mathbf{x}$는 우리가 실제로 관측하고 수집할 수 있는 데이터이다. **잠재 변수(latent variable)**  $\mathbf{z}$나 **매개변수(parameter)** $\theta$는 우리가 관측할 수 없고, 존재한다고 가정하고 있는 값이다. 이 두 변수는 모델이 관측 데이터의 분포를 설명하기 위해 도입한 변수이며, 역할이 다르다. 잠재 변수는 각 관측 데이터마다 서로 다른 값을 가질 수 있다. 반면, 모든 관측 데이터는 같은 매개변수를 공유한다.
+
+잠재 변수의 도입은 생성 문제에서뿐만 아니라 확률 모델을 다룰 때 전반적으로 유용하다. 그 이유는 크게 두 가지가 있다. 먼저, $\mathbf{x}$의 복잡한 분포를 설명할 때 $\mathbf{z}$라는 중간 단계를 거칠 수 있다. 얼굴 이미지가 관측 데이터 $\mathbf{x}$이고, 표정, 자세, 조명 등의 특성이 잠재 변수 $\mathbf{z}$인 상황을 생각해 보자. $\mathbf{x}$의 분포는 매우 복잡하지만 '표정, 자세, 조명 등의 특성 $\mathbf{z}$가 먼저 정해지고, 그에 맞는 이미지 $\mathbf{x}$가 정해진다'고 분해하면 각 단계는 상대적으로 단순해진다. 이는 생성 모델의 샘플링 과정에서 특히 유용한데, 바로 $\mathbf{x}$를 샘플링하기는 어렵지만 $\mathbf{z}$를 먼저 샘플링한 뒤 이를 이용해 $\mathbf{x}$를 샘플링하는 것은 훨씬 쉽다.
+
+다음으로, $\mathbf{z}$는 $\mathbf{x}$의 핵심 정보를 압축해서 담고 있는 경우가 많다. 이미지와 같은 고차원 데이터 $\mathbf{x}$에서 의미 있는 저차원 표현 $\mathbf{z}$를 추출할 수 있다면, 데이터의 구조를 이해하거나 유사한 데이터를 분류하는 데 활용할 수 있다. 뿐만 아니라, $\mathbf{z}$를 조작해 원하는 특성을 가진 데이터를 생성하는 것도 가능하다.
+
+참고로, 위의 얼굴 예시에서는 $\mathbf{z}$의 각 원소가 표정, 자세, 조명 등 구체적인 의미를 가진다고 가정하고 있다. $\mathbf{z}$의 각 원소에 이렇게 의미를 부여할지는 모델링하기 나름이다. 이미지처럼 복잡한 데이터를 다루는 생성 모델에서는 보통 표정, 자세, 조명 등이 실제 데이터에서 어떻게 나타나는지 개별적으로 모델링할 수 없기 때문에 $\mathbf{z}$의 원소들을 구분하지 않는다. 따라서, 학습된 $\mathbf{z}$의 각 원소가 어떤 의미를 갖게 될지는 학습 결과에 달려 있다. 지금 설명할 단순한 예시에서는 $\mathbf{z}$가 명확한 의미를 가지고 있다.
 
 Claude가 만들어 준 다음 예시를 살펴보자. 매일 파스타를 만드는 요리사가 있다. 손님들은 파스타를 먹고 1점에서 10점까지 점수를 매긴다. 그런데 이 요리사는 매일 그 날의 기분에 따라 요리의 질이 달라진다. 요리사의 기분은 좋음과 나쁨 두 가지 상태가 있는데, 기분이 좋은 날에는 더 맛있는 요리를 만든다. 요리사의 기분을 직접 물어볼 수는 없다. 현실에서는 어제의 기분이 오늘의 기분에 영향을 주겠지만, 여기에서는 그런 요소는 생각하지 말고 각 날의 기분이 서로 독립이라고 가정하자.
 
@@ -34,7 +40,7 @@ Claude가 만들어 준 다음 예시를 살펴보자. 매일 파스타를 만�
 
 우리가 관심 있는 목표는 3번 문제이지만, 1번과 2번 문제도 모두 연관되어 있다. 우리는 매개변수와 잠재 변수를 도입해 데이터를 설명하는 모델을 사용하고 있기 때문이다. 특히 이 포스트의 후반부에서는 2번 문제에 더 초점을 맞출 것이다.
 
-## 생성 모델의 가정과 목표
+## Latent Variable Model의 가정
 
 이제 3번 문제를 풀고자 할 때, (1) 무엇이 가정이고, (2) 무엇이 주어져 있고, (3) 무엇이 목표인지 명확하게 써 보자. 이미 첫 포스트에서 다루었지만, latent variable model의 관점에서 다시 살펴보려고 한다.
 
@@ -46,13 +52,27 @@ Claude가 만들어 준 다음 예시를 살펴보자. 매일 파스타를 만�
   - 위의 예시에서 $p_{\theta}(\mathbf{x} \mid \mathbf{z} = \textrm{기분 좋음}) = \mathcal{N}(\mathbf{x}; \mu_{1}, \sigma_{1}^{2})$였다.
   - 또한, $p_{\theta}(\mathbf{x} \mid \mathbf{z} = \textrm{기분 나쁨}) = \mathcal{N}(\mathbf{x}; \mu_{2}, \sigma_{2}^{2})$ 였다.
 
-분포를 알고 있다는 것은 정규 분포, 범주형 분포, [베타 분포](https://en.wikipedia.org/wiki/Beta_distribution) 등 우리가 아는 분포들과 신경망 $f_{\theta}$ 등 우리가 아는 함수들로 나타낼 수 있다는 의미이다.
+여기서 '분포를 알고 있다'는 것은 모델을 설계할 때 해당 분포의 형태를 직접 정한다는 의미이다. $\theta$의 값이 정해지면 이 분포에서 샘플링을 하거나 밀도 함수를 계산할 수 있다.
+
+딥러닝에서 자주 사용되는 모델링은 다음과 같다. 먼저 $\mathbf{z}$의 분포를 표준 정규 분포로 모델링한다. 다음으로, $\mathbf{z}$를 입력으로 받고 매개변수 $\theta$를 가중치로 하는 신경망 $\boldsymbol{\mu}_{\theta}(\mathbf{z})$와 $\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$를 정의한다. $\mathbf{x}$가 $d$차원 벡터라면 $\boldsymbol{\mu}_{\theta}(\mathbf{z})$는 $d$차원 벡터, $\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$는 $d \times d$ 행렬이 되어야 한다. 마지막으로, $\mathbf{z}$가 주어진 $\mathbf{x}$의 분포를 평균이 $\boldsymbol{\mu}_{\theta}(\mathbf{z})$이고 공분산이 $\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$인 정규분포로 모델링한다. 식으로 나타내면 다음과 같다.
+
+$$p_{\theta}(\mathbf{z}) = \mathcal{N}(\mathbf{z}; \mathbf{0}, \mathbf{I}), \qquad p_{\theta}(\mathbf{x} \mid \mathbf{z}) = \mathcal{N}(\mathbf{x}; \boldsymbol{\mu}_{\theta}(\mathbf{z}), \boldsymbol{\Sigma}_{\theta}(\mathbf{z}))$$
+
+$p_{\theta}(\mathbf{z})$와 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$는 단순한 정규 분포이지만, 이들을 연결해 주는 신경망 $\boldsymbol{\mu}_{\theta}(\mathbf{z})$와 $\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$ 덕분에 관측 데이터 $\mathbf{x}$의 복잡한 분포를 표현할 수 있다.
+
+{{< callout type="Note" >}}
+$\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$를 정규 분포의 공분산 행렬로 활용하기 위해서는 이 행렬이 positive definite이어야 하는데, 이 조건을 만족시키기는 번거롭다. 그래서 $\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$가 $d \times d$ 행렬 대신 $d$차원 벡터가 되도록 하고, $p_{\theta}(\mathbf{x} \mid \mathbf{z})$의 공분산으로 대각 행렬 $\mathop{\mathrm{diag}}(\exp(\boldsymbol{\Sigma}_{\theta}(\mathbf{z})))$를 사용하는 경우가 많다. (대각 원소는 각 차원의 분산이므로 양수여야 하기 때문에 $\exp$가 필요하다.)
+
+이렇게 대각 공분산 행렬을 사용하면 분포가 더 단순해진다. 구체적으로는, $\mathbf{x}$의 각 차원이 $\mathbf{z}$가 주어졌을 때 조건부 독립이라는 가정이 된다. 하지만 $\mathbf{x}$의 차원 간의 복잡한 의존 관계는 잠재 변수 $\mathbf{z}$와 신경망 $\boldsymbol{\mu}_{\theta}$, $\boldsymbol{\Sigma}_{\theta}$에 이미 녹아 있으므로 실제로 잘 작동한다.
+{{< /callout >}}
+
+## Latent Variable Model의 목표
 
 (2) 문제를 풀기 위해 주어진 것은 $\mathbf{x}$의 실제 분포 $p_{\mathrm{data}}(\mathbf{x})$로부터 IID 샘플링한 $N$개의 샘플 $\mathbf{x}_{1}$, $\cdots$, $\mathbf{x}_{N}$이다.
 
 (3) 우리의 목표는 어떤 매개변수 $\theta$를 잘 정해서 우리의 모델에서의 관측 데이터의 분포 $p_{\theta}(\mathbf{x})$가 실제 데이터의 분포 $p_{\mathrm{data}}(\mathbf{x})$와 비슷해지도록 하는 것이다. 비슷하다의 기준으로 KL divergence를 채택하면, 다음 문제를 푸는 것이 된다.
 $$
-\theta = \argmin_{\theta} D_{KL}(p_{\mathrm{data}} \| p_{\theta})
+\theta = \argmin_{\theta} D_{\mathrm{KL}}(p_{\mathrm{data}} \| p_{\theta})
 $$
 
 KL divergence의 최소화는 MLE와 같으므로, 다음과 같이 쓸 수 있다.
@@ -76,7 +96,7 @@ $$\log p_{\theta}(\mathbf{x}) = \log \int p_{\theta}(\mathbf{x} \mid \mathbf{z})
 {{< callout type="Note" >}}
 이 현상은 앞의 요리사 예시에서는 잘 드러나지 않는다. $\mathbf{z}$가 '좋음'과 '나쁨' 두 가지뿐이므로, $p_{\theta}(\mathbf{x}) = p_{\theta}(\mathbf{x} \mid \mathbf{z} = \text{좋음}) \cdot \pi + p_{\theta}(\mathbf{x} \mid \mathbf{z} = \text{나쁨}) \cdot (1 - \pi)$를 정확히 계산할 수 있기 때문이다. 그래서 다른 예시를 두 개 살펴보자.
 
-1. $z \sim \mathcal{N}(0, 1)$이고 $p_{\theta}(x \mid z) = \mathcal{N}(z, 0.0001)$인 1차원 모델을 생각하자. 분산이 매우 작으므로, $x = 3$이 관측되었다면 $p_{\theta}(x = 3 \mid z)$가 유의미한 값을 가지는 $z$의 영역은 $3$ 근처의 매우 좁은 구간뿐이다. 하지만 사전 분포 $\mathcal{N}(0, 1)$에서 샘플링하면 $z$가 $3$ 근처에 올 확률은 매우 낮다.
+1. $z \sim \mathcal{N}(0, 1)$이고 $p_{\theta}(x \mid z) = \mathcal{N}(x;\, z, 0.0001)$인 1차원 모델을 생각하자. 분산이 매우 작으므로, $x = 3$이 관측되었다면 $p_{\theta}(x = 3 \mid z)$가 유의미한 값을 가지는 $z$의 영역은 $3$ 근처의 매우 좁은 구간뿐이다. 하지만 사전 분포 $\mathcal{N}(0, 1)$에서 샘플링하면 $z$가 $3$ 근처에 올 확률은 매우 낮다.
 
 2. 사람의 얼굴 이미지를 생성하는 모델에서, 잠재 변수 $\mathbf{z}$가 표정, 자세, 조명, 피부색 등의 특성을 표현하는 100차원 벡터라고 하자. 특정 얼굴 사진 $\mathbf{x}$가 주어졌을 때, 이 사진을 잘 설명하는 $\mathbf{z}$는 '살짝 웃는 표정, 정면을 바라보는 자세, 밝은 조명, ...'에 해당하는 아주 좁은 영역에만 존재한다. 사전 분포에서 $\mathbf{z}$를 랜덤으로 뽑으면 '크게 웃는 표정, 옆을 바라보는 자세, 어두운 조명, ...'과 같이 전혀 다른 특성이 나올 것이고, 이 $\mathbf{z}$에 대한 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$는 거의 $0$이 된다. 100차원 공간에서 랜덤으로 뽑은 점이 원하는 좁은 영역에 들어갈 확률은 사실상 $0$이다.
 {{< /callout >}}
@@ -117,9 +137,9 @@ $$
 \end{align*}
 $$
 
-Posterior $p_{\theta}(\mathbf{z} \mid \mathbf{x})$에서 샘플링이 가능하다면 마지막 식을 몬테 카를로 근사할 수 있다. 그리고 $\mathbf{x}$와 관련 있는 분포에서 $\mathbf{z}$를 샘플링하므로, 앞에서 살펴본 분산 문제가 완화된다.
-
 유도 과정이 상당히 복잡해 보이지만, 결국 $p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 어떻게든 꺼내 이 분포에 대한 기댓값으로 바꾸기 위한 작업이다. 세 번째와 네 번째 등호에서는 $\nabla_{\theta} p_{\theta}(\mathbf{x}, \mathbf{z})$에서 $p_{\theta}(\mathbf{x}, \mathbf{z})$를 꺼내기 위해 로그함수를 사용했는데, 이 log-derivative trick은 통계학에서 자주 사용되는 아름다운 기술이다.
+
+Posterior $p_{\theta}(\mathbf{z} \mid \mathbf{x})$에서 샘플링이 가능하다면 식 {{< eqref marginal-as-posterior >}}을 몬테 카를로 근사할 수 있다. 그리고 $\mathbf{x}$와 관련 있는 분포에서 $\mathbf{z}$를 샘플링하므로, 앞에서 살펴본 분산 문제가 완화된다.
 
 ## E-M Algorithm
 
@@ -131,7 +151,7 @@ E-M algorithm은 $\mathbf{z}$의 posterior distribution을 구하는 **E-step**�
 
 * 샘플 $\mathbf{x}^{(1)}$, $\cdots$, $\mathbf{x}^{(N)}$이 주어져 있다 하자. 매개변수의 초기값 $\theta_{0}$을 잡자.
 * 다음 두 step을 충분히 반복한다. $t$번째 반복에서는 다음을 수행한다. ($t = 1, 2, \cdots$)
-  * **E-step** (expectation step): 매개변수를 $\theta_{t-1}$로 고정하고, 각 샘플에 대한 posterior를 구한다. 즉, $n = 1, 2, \cdots, N$에 대해 $p^{(n)}_{t}(\mathbf{z}) = p_{\theta_{t - 1}}(\mathbf{z} \mid \mathbf{x} = \mathbf{x}^{(n)})$를 구한다.
+  * **E-step** (expectation step): 매개변수를 $\theta_{t-1}$로 고정하고, 각 샘플에 대한 posterior를 구한다. 즉, $n = 1, 2, \cdots, N$에 대해 $q^{(n)}_{t}(\mathbf{z}) = p_{\theta_{t - 1}}(\mathbf{z} \mid \mathbf{x} = \mathbf{x}^{(n)})$를 구한다.
   * **M-step** (maximization step): E-step에서 구한 posterior들을 이용해, 매개변수에 대한 최적화 문제를 풀어 $\theta_{t}$를 구한다.
 
 M-step에 대한 설명이 더 필요하다. 매개변수를 최적화한다는 것은 아래 MLE 문제를 푼다는 것이다.
@@ -155,17 +175,17 @@ $$
 위 식만 보면 이걸 최대화하는 $\theta$를 찾기 난감한 면이 있다. E-M algorithm의 아이디어는 E-step에서 구한 posterior distribution을 활용하는 것이다. 식 {{< eqref maximization-without-e-step >}}에 E-step에서 구한 분포를 대입하면 다음과 같이 쓸 수 있다.
 
 $$
-\log p_{\theta}(\mathbf{x}^{(n)}) \approx \mathbb{E}_{\mathbf{z} \sim p^{(n)}_{t}(\mathbf{z})} [\log p_{\theta}(\mathbf{x}^{(n)}, \mathbf{z}) - \log p_{t}^{(n)}(\mathbf{z})]
+\log p_{\theta}(\mathbf{x}^{(n)}) \approx \mathbb{E}_{\mathbf{z} \sim q^{(n)}_{t}(\mathbf{z})} [\log p_{\theta}(\mathbf{x}^{(n)}, \mathbf{z}) - \log q_{t}^{(n)}(\mathbf{z})]
 $$
 
 여기에서 기댓값 안의 두 번째 항은 $\theta$와 관련이 없으므로 최적화 문제에서 생략할 수 있다.
 
 {{< callout type="Note" >}}
-위 식에서는 등호 대신 근사 기호 $\approx$를 사용했다. 등호가 성립하지 않는 이유는 최적화 변수 $\theta$ 중 일부를 (멋대로) $\theta_{t - 1}$로 고정했기 때문이다. $p_{\theta}(\mathbf{z} \mid \mathbf{x}^{(n)}) = p_{t}^{(n)}(\mathbf{z})$로 놓았는데, 정의상 $p_{\theta}(\mathbf{z} \mid \mathbf{x}^{(n)}) = p_{\theta_{t-1}}(\mathbf{z} \mid \mathbf{x}^{(n)})$로 설정한 것과 같다.
+위 식에서는 등호 대신 근사 기호 $\approx$를 사용했다. 등호가 성립하지 않는 이유는 최적화 변수 $\theta$ 중 일부를 (멋대로) $\theta_{t - 1}$로 고정했기 때문이다. $p_{\theta}(\mathbf{z} \mid \mathbf{x}^{(n)}) = q_{t}^{(n)}(\mathbf{z})$로 놓았는데, 정의상 $p_{\theta}(\mathbf{z} \mid \mathbf{x}^{(n)}) = p_{\theta_{t-1}}(\mathbf{z} \mid \mathbf{x}^{(n)})$로 설정한 것과 같다.
 
 사실, 위 식에서 다음과 같은 부등호 관계가 성립한다.
 $$
-\log p_{\theta}(\mathbf{x}^{(n)}) \ge \mathbb{E}_{\mathbf{z} \sim p^{(n)}_{t}(\mathbf{z})} [\log p_{\theta}(\mathbf{x}^{(n)}, \mathbf{z}) - \log p_{t}^{(n)}(\mathbf{z})]
+\log p_{\theta}(\mathbf{x}^{(n)}) \ge \mathbb{E}_{\mathbf{z} \sim q^{(n)}_{t}(\mathbf{z})} [\log p_{\theta}(\mathbf{x}^{(n)}, \mathbf{z}) - \log q_{t}^{(n)}(\mathbf{z})]
 $$
 
 이 식은 E-M algorithm의 정당성을 보장해 주는 중요한 식이다. 지금은 E-M algorithm을 엄밀하게 설명하고 있지 않고, 같은 형태의 식이 아래에서 variational Bayes의 **ELBO**를 설명할 때 다시 나오기 때문에 넘어가겠다.
@@ -175,15 +195,15 @@ $$
 $$
 \begin{align*}
 \theta_{t} &\approx \argmax_{\theta} \sum_{n = 1}^{N} \log p_{\theta}(\mathbf{x}^{(n)})\\
-&\approx \argmax_{\theta} \sum_{n=1}^{N} \mathbb{E}_{\mathbf{z} \sim p^{(n)}_{t}(\mathbf{z})} [\log p_{\theta}(\mathbf{x}^{(n)}, \mathbf{z})]
+&\approx \argmax_{\theta} \sum_{n=1}^{N} \mathbb{E}_{\mathbf{z} \sim q^{(n)}_{t}(\mathbf{z})} [\log p_{\theta}(\mathbf{x}^{(n)}, \mathbf{z})]
 \end{align*}
 $$
 
-이 문제는 몬테 카를로 근사를 적용해 해결할 수 있다. 왜냐하면 이제 $\mathbf{z}$가 posterior distribution인 $p_{t}^{(n)}(\mathbf{z})$에서 샘플링되므로, 위에서 언급한 분산이 지나치게 커지는 문제가 발생하지 않기 때문이다. 사실 **Gaussian mixture model (GMM)** 과 같이 단순한 모델의 경우에는 몬테 카를로 근사를 적용할 필요도 없이 위 식의 값을 해석적으로 구할 수 있다. 이 경우에 E-M algorithm은 매우 유용하다.
+이 문제는 몬테 카를로 근사를 적용해 해결할 수 있다. 왜냐하면 이제 $\mathbf{z}$가 posterior distribution인 $q_{t}^{(n)}(\mathbf{z})$에서 샘플링되므로, 위에서 언급한 분산이 지나치게 커지는 문제가 완화되기 때문이다. 사실 **Gaussian mixture model (GMM)** 과 같이 단순한 모델의 경우에는 몬테 카를로 근사를 적용할 필요도 없이 위 식의 값을 해석적으로 구할 수 있다. 이 경우에 E-M algorithm은 매우 유용하다.
 
 물론 여기에서 논의가 끝나는 것은 아니다. E-step과 M-step을 반복해 최적의 매개변수를 찾을 수 있으려면 '$\theta_{t}$이 항상 $\theta_{t-1}$보다 더 좋은 매개변수인가?'와 같은 질문에 답할 수 있어야 한다. 여기에서는 생략한다.
 
-마지막으로 E-step에서 posterior $p_{t}^{(n)}(\mathbf{z})$를 구하는 방법에 대해 잠깐 언급하겠다. GMM처럼 단순한 모델에서는 posterior를 해석적으로 구할 수 있다. 하지만 모델이 조금만 복잡해지더라도 posterior를 해석적으로 구할 수 있으리라 기대하기 어렵다. 이런 경우에는 바로 뒤에서 설명할 베이지안 추론 방법들을 이용해 posterior를 근사해 구할 수 있다.
+마지막으로 E-step에서 posterior $q_{t}^{(n)}(\mathbf{z})$를 구하는 방법에 대해 잠깐 언급하겠다. GMM처럼 단순한 모델에서는 posterior를 해석적으로 구할 수 있다. 하지만 모델이 조금만 복잡해지더라도 posterior를 해석적으로 구할 수 있으리라 기대하기 어렵다. 이런 경우에는 바로 뒤에서 설명할 베이지안 추론 방법들을 이용해 posterior를 근사해 구할 수 있다.
 
 {{< toggle title="GMM의 정의와 posterior (E-step)" >}}
 **Gaussian Mixture Model (GMM)** 은 데이터가 $K$개의 정규 분포의 혼합으로 생성된다고 가정하는 모델이다. 잠재 변수 $\mathbf{z}$는 $K$개의 값 중 하나를 가지며, 어떤 정규 분포에서 데이터가 생성되었는지를 나타낸다. 앞의 파스타 요리사 예시는 $K = 2$인 GMM이다. 요리사의 기분이 좋을 때와 나쁠 때의 점수가 각각 정규분포를 따르고 있었기 때문이다.
@@ -212,7 +232,7 @@ M-step의 목적 함수를 GMM에 대해 구체적으로 쓰면 다음과 같다
 
 $$
 \begin{align*}
-\sum_{n=1}^{N} \mathbb{E}_{\mathbf{z} \sim p_{t}^{(n)}(\mathbf{z})} [\log p_{\theta}(\mathbf{x}^{(n)}, \mathbf{z})] = \sum_{n=1}^{N} \sum_{k=1}^{K} r_{nk} \log \left[ \pi_{k} \, \mathcal{N}(\mathbf{x}^{(n)}; \boldsymbol{\mu}_{k}, \boldsymbol{\Sigma}_{k}) \right]
+\sum_{n=1}^{N} \mathbb{E}_{\mathbf{z} \sim q_{t}^{(n)}(\mathbf{z})} [\log p_{\theta}(\mathbf{x}^{(n)}, \mathbf{z})] = \sum_{n=1}^{N} \sum_{k=1}^{K} r_{nk} \log \left[ \pi_{k} \, \mathcal{N}(\mathbf{x}^{(n)}; \boldsymbol{\mu}_{k}, \boldsymbol{\Sigma}_{k}) \right]
 \end{align*}
 $$
 
@@ -228,16 +248,22 @@ $$
 따라서 몬테 카를로 근사 등의 방법을 사용하지 않고도 M-step을 수행할 수 있다.
 {{< /toggle >}}
 
+{{< callout type="Note" >}}
+E-M algorithm은 딥러닝에서는 잘 쓰이지 않는다. E-M algorithm의 유용성은 어려운 문제를 E-step과 M-step이라는 쉬운 문제 두 개로 쪼개는 데서 오는데, 딥러닝에서는 E-step, 즉 posterior $p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 구하는 것 자체가 어렵기 때문이다. Posterior를 근사적으로라도 구하려면 결국 이 포스트의 후반부에서 다룰 MCMC나 variational Bayes 같은 방법이 필요하게 되어, E-M algorithm의 아이디어가 크게 도움이 되지 않는다.
+
+E-M algorithm의 아이디어 자체는 딥러닝에서도 활용할 수 있다. 다음 포스트에서 살펴볼 wake-sleep algorithm이 E-M algorithm과 유사하다. 최적화하는 목적 함수는 다르지만, $\theta$를 최적화하는 step과 posterior를 구하는 step으로 나누어져 있는 것이 비슷하다.
+{{< /callout >}}
+
 # Bayesian Inference
 
 앞 절에서 posterior distribution $p_{\theta}(\mathbf{z} \mid \mathbf{x})$이 중요하다는 사실을 알게 되었다. Posterior에 대한 문제는 전통적으로 **베이지안 추론(Bayesian inference)** 이라는 분야에서 다루고 있다. 베이지안 추론에서는 생성 문제보다 훨씬 넓은 범위의 문제를 연구하는데, 보통 '특정 현상이 일어났다. 어떤 잠재 변수와 매개변수에 의해 일어났을까?' 라는 질문에서 출발한다. 어떤 관측 데이터 $\mathbf{x}$가 주어졌을 때 $\mathbf{z}$나 $\theta$에 대해 알아내는 것은 결국 이들의 확률 분포인 posterior를 구하는 것과 같다.
 
-이 절에서는 베이지안 추론 방법들 중 MCMC와 variational Bayes를 살펴볼 것이다. VAE는 이 중 variational Bayes에서 강하게 영향을 받았다 (논문 제목에도 들어가 있다).
+이 절에서는 베이지안 추론 방법들 중, posterior를 해석적으로 구할 수 없을 때 이를 다루기 위한 두 가지 방법인 MCMC와 variational Bayes를 살펴볼 것이다. VAE는 이 중 variational Bayes에서 강하게 영향을 받았다 (논문 제목에도 들어가 있다).
 
 이 절에서 풀고 싶은 문제는 다음과 같다.
 
 {{< callout type="Problem" >}}
-Latent variable model에서, 하나의 관측 데이터 샘플 $\mathbf{x}$가 주어졌을 때 $\mathbf{z}$의 posterior distribution $p_{\theta}(\mathbf{z} \mid \mathbf{x})$을 어떻게 구하거나 근사할 수 있을까?
+Latent variable model에서, 하나의 관측 데이터 샘플 $\mathbf{x}$가 주어졌을 때 $\mathbf{z}$의 posterior distribution $p_{\theta}(\mathbf{z} \mid \mathbf{x})$을 어떻게 다룰 수 있을까?
 {{< /callout >}}
 
 이제부터는 $\theta$의 최적화 문제에 신경쓰지 않고, $\theta$는 이미 정해져서 잘 알고 있는 값이라고 가정한다. 그리고 샘플 $\mathbf{x}$도 하나로 고정한다. 즉 $\mathbf{x}$와 $\theta$가 고정된 상태에서 $p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 잘 근사하는 것에만 초점을 맞출 것이다.
@@ -307,11 +333,11 @@ $$
 
 Metropolis-Hastings (MH) algorithm의 핵심 아이디어는 rejection sampling처럼 후보를 제안하고 채택/기각하되, 매번 사전 분포에서 독립적으로 샘플링하는 대신 현재 상태에서 가까운 후보를 제안하는 것이다. 이를 위해 우리가 자유롭게 선택할 수 있는 **proposal distribution** $q(\mathbf{z}' \mid \mathbf{z})$를 사용한다. 이 분포는 현재 상태 $\mathbf{z}$가 주어졌을 때 다음 후보 $\mathbf{z}'$를 제안하는 역할을 한다.
 
-Proposal distribution으로는 우리가 원하는 분포를 사용할 수 있는데, 정규분포 $q(\mathbf{z}' \mid \mathbf{z}) = \mathcal{N}(\mathbf{z}, \sigma^{2} I)$가 대표적이다. 이렇게 현재 있는 샘플을 기반으로 다음 샘플을 만드는 것이 핵심 아이디어이며, 덕분에 rejection sampling보다 우리가 원하는 분포를 빠르게 만들어낼 수 있다.
+Proposal distribution으로는 우리가 원하는 분포를 사용할 수 있는데, 정규분포 $q(\mathbf{z}' \mid \mathbf{z}) = \mathcal{N}(\mathbf{z}';\, \mathbf{z}, \sigma^{2} I)$가 대표적이다. 이렇게 현재 있는 샘플을 기반으로 다음 샘플을 만드는 것이 핵심 아이디어이며, 덕분에 rejection sampling보다 우리가 원하는 분포를 빠르게 만들어낼 수 있다.
 
 구체적인 알고리즘은 다음과 같다. $\mathbf{z}^{(0)}$을 임의의 초깃값으로 설정한 뒤, 매 단계 $t$에서 다음을 반복한다. ($t = 1, 2, \cdots$)
 
-1. $\mathbf{z}^{(t-1)}$가 주어진 제안 분포에서 $\mathbf{z}^{(t)}$의 후보 $\mathbf{z}'$를 샘플링한다. 즉, $\mathbf{z}' \sim q(\mathbf{z}' \mid \mathbf{z}^{(t-1)})$
+1. $\mathbf{z}^{(t-1)}$가 주어진 proposal distribution에서 $\mathbf{z}^{(t)}$의 후보 $\mathbf{z}'$를 샘플링한다. 즉, $\mathbf{z}' \sim q(\mathbf{z}' \mid \mathbf{z}^{(t-1)})$
 2. 채택 확률 $\alpha$를 다음과 같이 계산한다:
 $$
 \alpha = \min \left( 1, \; \frac{p_{\theta}(\mathbf{x}, \mathbf{z}')}{p_{\theta}(\mathbf{x}, \mathbf{z}^{(t-1)})} \cdot \frac{q(\mathbf{z}^{(t-1)} \mid \mathbf{z}')}{q(\mathbf{z}' \mid \mathbf{z}^{(t-1)})} \right)
@@ -329,7 +355,7 @@ $$
 
 $\pi$가 **stationary distribution** 이라는 것은, 현재 상태가 $\pi$를 따를 때 다음 상태도 $\pi$를 따르게 된다는 의미이다. 그렇게 되기 위해서는 $\pi(\mathbf{z}') = \int \pi(\mathbf{z}) \, T(\mathbf{z} \to \mathbf{z}') \, d\mathbf{z}$를 만족해야 한다. Detailed balance가 성립하면 양변을 $\mathbf{z}$에 대해 적분했을 때 이 조건이 만족되므로, $\pi$가 stationary distribution이라는 것을 바로 알 수 있다.
 
-MH algorithm에서 전이 확률 $T(\mathbf{z} \to \mathbf{z}')$를 구해 보자. 상태 $\mathbf{z}$에서 $\mathbf{z}'$로 전이하려면, 먼저 제안 분포 $q(\mathbf{z}' \mid \mathbf{z})$에서 $\mathbf{z}'$가 제안되어야 하고, 그 후 확률 $\alpha(\mathbf{z}, \mathbf{z}')$로 채택되어야 한다. 따라서 $\mathbf{z} \neq \mathbf{z}'$일 때 전이 확률은 다음과 같다.
+MH algorithm에서 전이 확률 $T(\mathbf{z} \to \mathbf{z}')$를 구해 보자. 상태 $\mathbf{z}$에서 $\mathbf{z}'$로 전이하려면, 먼저 proposal distribution $q(\mathbf{z}' \mid \mathbf{z})$에서 $\mathbf{z}'$가 제안되어야 하고, 그 후 확률 $\alpha(\mathbf{z}, \mathbf{z}')$로 채택되어야 한다. 따라서 $\mathbf{z} \neq \mathbf{z}'$일 때 전이 확률은 다음과 같다.
 $$
 T(\mathbf{z} \to \mathbf{z}') = q(\mathbf{z}' \mid \mathbf{z}) \cdot \alpha(\mathbf{z}, \mathbf{z}')
 $$
@@ -360,7 +386,7 @@ $$
 두 값이 같으므로 detailed balance가 성립한다. 따라서 $\pi(\mathbf{z}) = p_{\theta}(\mathbf{z} \mid \mathbf{x})$는 이 Markov chain의 stationary distribution이다.
 {{< /toggle >}}
 
-이 알고리즘의 핵심은 채택 확률을 계산할 때 $p_{\theta}(\mathbf{x}, \mathbf{z})$의 **비율**만 중요하다는 것이다. 비율을 계산할 때 정규화 상수 $p_{\theta}(\mathbf{x})$가 약분되기 때문에, posterior를 정규화할 수 없어도 알고리즘을 실행할 수 있다. 제안 분포가 대칭적인 경우, 즉 $q(\mathbf{z}' \mid \mathbf{z}) = q(\mathbf{z} \mid \mathbf{z}')$이면 $\alpha$의 두 번째 항이 1이 되어 식이 더 간단해진다. 예를 들어, $q(\mathbf{z}' \mid \mathbf{z}) = \mathcal{N}(\mathbf{z}, \sigma^{2} I)$처럼 현재 위치를 중심으로 한 정규분포를 사용하면 된다.
+이 알고리즘의 핵심은 채택 확률을 계산할 때 $p_{\theta}(\mathbf{x}, \mathbf{z})$의 **비율**만 중요하다는 것이다. 비율을 계산할 때 정규화 상수 $p_{\theta}(\mathbf{x})$가 약분되기 때문에, posterior를 정규화할 수 없어도 알고리즘을 실행할 수 있다. Proposal distribution이 대칭적인 경우, 즉 $q(\mathbf{z}' \mid \mathbf{z}) = q(\mathbf{z} \mid \mathbf{z}')$이면 $\alpha$의 두 번째 항이 1이 되어 식이 더 간단해진다. 예를 들어, $q(\mathbf{z}' \mid \mathbf{z}) = \mathcal{N}(\mathbf{z}';\, \mathbf{z}, \sigma^{2} I)$처럼 현재 위치를 중심으로 한 정규분포를 사용하면 된다.
 
 ### Limitations of MCMC
 
@@ -503,7 +529,12 @@ D_{\mathrm{KL}}(q_{\phi}(\mathbf{z}) \| p_{\theta}(\mathbf{z} \mid \mathbf{x}))
 \end{align*}
 $$
 
-$\log p_{\theta}(\mathbf{x})$가 자연스럽게 튀어나왔다! 그리고 $\log p_{\theta}(\mathbf{x})$를 제외한 나머지 부분은 식 {{< eqref objective-right >}}에서 본 목적 함수이다. 이제 샘플 $\mathbf{x}$를 고정한 상황이고 $\mathbf{z}$의 posterior가 매개변수 $\theta$를 사용하는 모델에서 나온 것임을 강조해서, 목적 함수를 $\mathcal{L}(\phi; \mathbf{x}, \theta)$라고 다시 쓰자. 그리고 편의상 목적 함수의 부호를 바꿔, $\mathcal{L}(\phi; \mathbf{x}, \theta) = -J_{2}'(\phi)$로 정의하자. 그러면 다음 관계가 성립한다는 것을 바로 알 수 있다.
+$\log p_{\theta}(\mathbf{x})$가 자연스럽게 튀어나왔다! 그리고 $\log p_{\theta}(\mathbf{x})$를 제외한 나머지 부분은 식 {{< eqref objective-right >}}에서 본 목적 함수이다. 이제 샘플 $\mathbf{x}$를 고정한 상황이고 $\mathbf{z}$의 posterior가 매개변수 $\theta$를 사용하는 모델에서 나온 것임을 강조해서, 목적 함수를 $\mathcal{L}(\phi; \mathbf{x}, \theta)$라고 다시 쓰자. 그리고 편의상 목적 함수의 부호를 바꿔, $\mathcal{L}(\phi; \mathbf{x}, \theta) = -J_{2}'(\phi)$로 정의하자. $\mathcal{L}$의 정의를 한번 더 적어 보면 다음과 같다.
+$$
+\mathcal{L}(\phi; \mathbf{x}, \theta) = \mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z})} [\log p_{\theta}(\mathbf{x}, \mathbf{z}) - \log q_{\phi}(\mathbf{z})]
+$$
+
+그러면 다음 관계가 성립한다는 것 알 수 있다.
 {{< eqlabel elbo >}}
 $$
 \log p_{\theta}(\mathbf{x}) = D_{\mathrm{KL}}(q_{\phi}(\mathbf{z}) \| p_{\theta}(\mathbf{z} \mid \mathbf{x})) + \mathcal{L}(\phi; \mathbf{x}, \theta)
@@ -533,9 +564,9 @@ Variational Bayes는 MCMC와 달리 반복적인 샘플링 없이 최적화 문�
 
 이번 포스트에서는 latent variable model을 구체적으로 살펴보고, marginal likelihood인 $p_{\theta}(\mathbf{x})$를 계산하기 어렵다는 문제를 확인했다. 이를 해결하기 위해서는 posterior $p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 구해야 하는데, 여기에 대한 세 가지 방법을 살펴보았다.
 
-- **E-M algorithm**: Posterior를 해석적으로 구할 수 있는 단순한 모델에서 강력하지만, 신경망 기반의 복잡한 모델에는 적용하기 어렵다.
+- **E-M algorithm**: Posterior를 해석적으로 구할 수 있는 단순한 모델에서 강력하지만, 신경망 기반의 복잡한 모델에는 효과적이지 않다.
 - **MCMC**: Posterior의 정규화 상수를 몰라도 샘플링이 가능하지만, 수렴이 느리고 매 step마다 긴 Markov chain을 돌려야 하므로 복잡한 모델의 학습에 활용하기 어렵다.
-- **Variational Bayes**: Posterior를 근사하는 분포 $q_{\phi}(\mathbf{z})$를 최적화하는 방법으로, ELBO라는 목적 함수를 활용한다. 모든 관측 결과마다 다른 분포를 최적화시켜야 하므로, 마찬가지로 복잡한 모델에 적용하기 어렵다.
+- **Variational Bayes**: Posterior를 근사하는 분포 $q_{\phi}(\mathbf{z})$를 최적화하는 방법으로, ELBO라는 목적 함수를 활용한다. 모든 관측 샘플마다 다른 분포를 최적화시켜야 하므로, 마찬가지로 복잡한 모델에 적용하기 어렵다.
 
 여기에서 살펴본 방법들은 딥러닝 이전 단순한 모델들에서는 유용하지만, 딥러닝에는 적합하지 않다. 다음 포스트에서는 딥러닝에서 이러한 한계들을 극복하는 방법에 대해 알아볼 것이다.
 
