@@ -2,7 +2,7 @@
 title: "Generative Models - 04. Variational Autoencoder (2)"
 date: 2026-02-14
 tags: ["machine-learning", "generative-models"]
-draft: true
+draft: false
 ---
 
 *이 글은 Claude Opus 4.6의 도움을 받아 작성했다.*
@@ -11,7 +11,7 @@ draft: true
 
 **문제점 1. 각 관측 샘플마다 다른 posterior를 얻어야 한다**. $N$개의 샘플 $\mathbf{x}^{(1)}$, $\cdots$, $\mathbf{x}^{(N)}$이 주어졌을 때, 이들로부터 얻어지는 $\mathbf{z}$의 posterior $p_{\theta}(\mathbf{z} \mid \mathbf{x}^{(1)})$, $\cdots$, $p_{\theta}(\mathbf{z} \mid \mathbf{x}^{(N)})$은 모두 다른 분포이다. MCMC를 사용하든 variational Bayes든, 이 분포들을 일일히 다르게 취급해야 한다. 딥러닝 모델을 학습시키기 위해서는 수많은 샘플이 필요하므로, 이는 치명적인 문제점이다.
 
-**문제점 2. 높은 분산 문제**. 이 문제는 variationial Bayes에서 발생했다. $q_{\phi}$의 매개변수 $\phi$를 최적화할 때 log-derivative trick과 몬테 카를로 근사를 사용하면 추정량의 분산이 높아 제대로 된 근사가 이루어지지 않는다 (매우 많은 샘플을 활용해야 제대로 근사할 수 있다). 이 문제는 이전 포스트에서 자세히 살펴보지 않고 넘어갔다 ([참고](../03-variational-autoencoder-1/#eq-high-variance-of-mc)).
+**문제점 2. 높은 분산 문제**. 이 문제는 variational Bayes에서 발생했다. $q_{\phi}$의 매개변수 $\phi$를 최적화할 때 log-derivative trick과 몬테 카를로 근사를 사용하면 추정량의 분산이 높아 제대로 된 근사가 이루어지지 않는다 (매우 많은 샘플을 활용해야 제대로 근사할 수 있다). 이 문제는 이전 포스트에서 자세히 살펴보지 않고 넘어갔다 ([참고](../03-variational-autoencoder-1/#eq-high-variance-of-mc)).
 
 **문제점 3. 샘플링 효율성**. 이 문제는 MCMC에서 발생했다. MH algorithm가 posterior를 의미 있는 수준으로 근사하기 위해서는 Markov chain을 충분히 길게 따라가야 한다. 이렇게 얻은 샘플이 한두 개 필요한 것이 아니다.
 
@@ -31,6 +31,8 @@ q_{\phi}(\mathbf{z} \mid \mathbf{x}^{(1)}) \approx p_{\theta}(\mathbf{z} \mid \m
 $$
 
 이렇게 하나의 매개변수로 모든 posterior를 동시에 근사할 수 있는 이유는 우리의 모델에서 $\mathbf{x}$와 $\mathbf{z}$가 긴밀하게 연관되어 있기 때문이다. 다만 이것이 실제로 작동하려면, $q_{\phi}$가 이 복잡한 관계를 표현할 수 있을 만큼 충분히 유연해야 한다. 전통적인 통계적 추론에서 사용하는 모델로는 이것이 어렵지만, 딥러닝에서는 표현력이 높은 신경망을 활용해 모델링하므로 이것이 가능하다. 단, 공유된 $\phi$는 개별 $\phi^{(i)}$보다 유연성이 떨어지므로 각 샘플에 대한 근사의 정밀도는 희생될 수 있다. 이러한 접근 방법을 **amortized inference**라 한다.
+
+이제 $p_{\theta}$와 $q_{\phi}$의 의미가 더 명확해진다. $p_{\theta}(\mathbf{x} \mid \mathbf{z})$는 잠재 변수 $\mathbf{z}$로부터 관측 데이터 $\mathbf{x}$를 생성하는 역할을 하므로 **decoder**라 부르고, $q_{\phi}(\mathbf{z} \mid \mathbf{x})$는 관측 데이터 $\mathbf{x}$로부터 잠재 변수 $\mathbf{z}$의 분포를 추론하는 역할을 하므로 **encoder**라 부른다. 이는 입력을 저차원 표현으로 압축하는 encoder와 이를 다시 복원하는 decoder로 구성된 autoencoder와 유사한 구조이며, variational autoencoder라는 이름도 여기에서 나왔다. 다만, 이 포스트에서는 $q_{\phi}$의 의미로 encoder보다는 posterior의 근사 분포임을 더 강조하고자 한다. 그래서 이후로는 encoder/decoder라는 용어를 사용하지 않았다.
 
 ## 근사 분포의 모델링
 
@@ -89,7 +91,7 @@ $$
 
 지금까지 우리의 논리를 되짚어 보자. 우리는 생성 모델의 목표를 $p_{\mathrm{data}}(\mathbf{x})$와 $p_{\theta}(\mathbf{x})$ 간의 KL divergence를 최소화하는 것으로 설정했다. 모델로는 latent variable model을 도입했다. 이 모델에서 샘플 $\mathbf{x}$의 marginal likelihood $p_{\theta}(\mathbf{x})$를 직접 계산하기 어렵기 때문에, posterior $p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 통해 이를 우회하고자 했다. Posterior를 다루기 위해 베이지안 추론을 살펴보았고, 이 중 posterior를 매개화된 분포 $q_{\phi}(\mathbf{z})$로 근사하는 variational Bayes를 채택했다. 이때, 각 샘플마다 다른 posterior를 얻는 것은 비효율적이므로, 하나의 매개변수로 모든 posterior를 근사하는 amortized inference 방식을 도입했다.
 
-이제 VAE로 넘어갈 수 있는 준비를 갖추었다. 그 전에, VAE 이전에 존재하던 생성 모델의 학습 알고리즘인 wake-sleep algorithm을 살펴보자. 딥러닝의 아버지라고 불리는 G. E. Hinton을 포함한 딥러닝의 개척자들이 1995년 제안한 이 알고리즘은, 딥러닝이라는 용어도 없었던 초창기의 연구이다. 그래서 논문에서 사용하는 용어나 개념이 지금 흔히 쓰이는 것들과 다르다. 특히 분포 간의 divergence를 최소화하는 통계학의 관점보다는 주어진 데이터를 가장 짧게 설명하는 모델을 찾는다는 정보 이론의 관점에서 접근하고 있다. 이러한 관점을 **minimum description length (MDL)** 이라고 한다. 여기에 적은 내용은 (Claude의 도움을 받아) 우리의 관점으로 바꿔 서술한 것이다. MDL에 대한 설명은 이 포스트에서 자세히 다루지 않을 예정이므로 toggle box 안에 적었다.
+이제 VAE로 넘어갈 수 있는 준비를 갖추었다. 그 전에, VAE 이전에 존재하던 생성 모델의 학습 알고리즘인 wake-sleep algorithm을 살펴보자. 딥러닝의 아버지라고 불리는 G. E. Hinton을 포함한 딥러닝의 개척자들이 1995년 제안한 이 알고리즘은{{< ref 2 >}}, 딥러닝이라는 용어도 없었던 초창기의 연구이다. 그래서 논문에서 사용하는 용어나 개념이 지금 흔히 쓰이는 것들과 다르다. 특히 분포 간의 divergence를 최소화하는 통계학의 관점보다는 주어진 데이터를 가장 짧게 설명하는 모델을 찾는다는 정보 이론의 관점에서 접근하고 있다. 이러한 관점을 **minimum description length (MDL)** 이라고 한다. 여기에 적은 내용은 (Claude의 도움을 받아) 우리의 관점으로 바꿔 서술한 것이다. MDL에 대한 설명은 이 포스트에서 자세히 다루지 않을 예정이므로 toggle box 안에 적었다.
 
 {{< toggle title="Minimum Description Length" >}}
 주어진 데이터 $\mathbf{x}$를 설명한다는 것은 $\mathbf{x}$를 어떤 메시지로 encoding한다는 뜻이다. 이 메시지를 decoding해 원래의 $\mathbf{x}$를 복원할 수 있어야 한다.
@@ -117,13 +119,14 @@ Hinton et al.이 생성 모델을 설계하고자 할 때 겪은 문제는 학�
 
 Wake phase에서는 $\phi$를 고정한 뒤 실제 관측 데이터의 샘플을 이용해 $\theta$를 학습시킨다. 먼저, 하나의 샘플에 대한 목적 함수는 다음과 같다.
 
+{{< eqlabel description-cost >}}
 $$
 C(\mathbf{x}) = \mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid \mathbf{x})} [-\log p_{\theta}(\mathbf{x}, \mathbf{z}) + \log q_{\phi}(\mathbf{z} \mid \mathbf{x})]
 $$
 
 MDL의 관점에서 이 목적 함수는 모델이 $\mathbf{x}$를 설명하는 데 필요한 비용(메시지의 길이)를 의미한다. 자세한 설명은 아래를 참고하자.
 
-{{< toggle title="하나의 샘플에 대한 목적 함수 유도" >}}
+{{< toggle title="하나의 샘플에 대한 목적 함수 유도 (MDL)" >}}
 MDL의 관점에서, 목적 함수는 '샘플을 전송하기 위해 필요한 메시지의 평균 길이'로 정의해야 한다.
 
 $p_{\theta}$와 $q_{\phi}$가 주어진 상황에서, sender가 하나의 샘플 $\mathbf{x}$를 전송하는 방법은 다음과 같다.
@@ -142,7 +145,14 @@ $$
 \mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid \mathbf{x})} [-\log p_{\theta}(\mathbf{x}, \mathbf{z})]
 $$
 
-그런데 단계 1에서 $\mathbf{z}$를 분포 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$에서 자유롭게 샘플링했음에 주목하자. 자유롭게 샘플링했다는 것은 여기에 **$\mathbf{x}$와 독립인 추가적인 확률 변수에 대한 정보를 심을 수 있다**는 것을 뜻한다. 이것이 무슨 의미인지 구체적으로 살펴보자. 만약 모든 자리가 $1/2$의 확률로 0이고 $1/2$의 확률로 1인 (따라서 $\mathbf{x}$와도 독립인) binary string $m$이 있다고 하자. 분포 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$를 이용한 $\mathbf{z}$의 encoding을 생각하면, 어떤 $\mathbf{z}_m$이 유일하게 존재해 분포 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$를 이용한 $\mathbf{z}_m$의 encoding이 $m$의 prefix와 일치한다. 또한, $m$을 확률 변수로 보면 이렇게 정해지는 $\mathbf{z}_m$의 확률 분포는 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$와 동일하다. (이것은 Huffman coding 등 최적의 coding 알고리즘의 성질인데, 여기서는 자세한 설명은 생략한다.) 따라서, $m$의 prefix에서 $-\log q_{\phi}(\mathbf{z}_m \mid \mathbf{x})$개의 비트를 $\mathbf{x}$와 함께 전송할 수 있다!
+그런데 단계 1에서 $\mathbf{z}$를 분포 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$에서 자유롭게 샘플링했음에 주목하자. 자유롭게 샘플링했다는 것은 여기에 **$\mathbf{x}$와 독립인 추가적인 확률 변수에 대한 정보를 심을 수 있다**는 것을 뜻한다. 이것이 무슨 의미인지 구체적으로 살펴보자.
+
+분포 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$에 대한 최적의 encoding/decoding 알고리즘을 생각하면, 각 $\mathbf{z}$는 길이 $-\log q_{\phi}(\mathbf{z} \mid \mathbf{x})$의 메시지로 encoding된다. 이제 모든 자리가 $1/2$의 확률로 0이고 $1/2$의 확률로 1인 (따라서 $\mathbf{x}$와도 독립인) binary string $m$이 있다고 하자. 위 decoding 알고리즘을 $m$에 적용하면, $m$의 prefix에 대응되는 어떤 $\mathbf{z}_m$을 얻을 수 있다. 이때, $\mathbf{z}_{m}$은 다음 두 가지 성질을 가지고 있다.
+
+1. $q_{\phi}(\mathbf{z} \mid \mathbf{x})$를 이용해 $\mathbf{z}_m$을 encoding하면 $m$의 prefix가 복원된다. Encoding과 decoding은 역함수 관계이기 때문이다. 이 prefix의 길이는 $-\log q_{\phi}(\mathbf{z}_m \mid \mathbf{x})$이다.
+2. $\mathbf{z}_m$의 분포는 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$와 동일하다. $\mathbf{z}_{m}$을 encoding한 메시지 길이는 $-\log q_{\phi}(\mathbf{z}_{m} \mid \mathbf{x})$이다. $m$이 균일 분포이므로, $m$이 이 메시지와 일치하는 prefix를 가질 확률은 $(1/2)^{-\log q_{\phi}(d\mathbf{z} \mid \mathbf{x})} = q_{\phi}(\mathbf{z} \mid \mathbf{x})$이다.
+
+따라서, 이렇게 얻은 $\mathbf{z}_{m}$을 이용하면 $m$의 $-\log q_{\phi}(\mathbf{z}_m \mid \mathbf{x})$ 개의 비트를 $\mathbf{x}$와 함께 전송할 수 있다!
 
 Sender가 $\mathbf{x}$와 함께 $m$의 첫 $-\log q_{\phi}(\mathbf{z}_m \mid \mathbf{x})$ 비트를 전송하는 방법은 다음과 같다.
 1. 위에서 설명한 $\mathbf{z}_m$을 구한다. $q_{\phi}(\mathbf{z} \mid \mathbf{x})$을 이용해 $\mathbf{z}_{m}$을 encoding하면 $m$의 prefix가 나와야 한다.
@@ -154,16 +164,44 @@ Receiver의 입장에서는, 다음과 같은 순서로 $\mathbf{x}$ 뿐만 아�
 2. $p_{\theta}(\mathbf{x} \mid \mathbf{z})$를 이용해 단계 3의 메시지를 decoding해 $\mathbf{x}$를 복원한다.
 3. 이제 $\mathbf{x}$와 $\mathbf{z}$를 모두 알고 있으니, $q_{\phi}(\mathbf{z} \mid \mathbf{x})$를 이용해 $\mathbf{z}$를 encoding해 $m$의 첫 $-\log q_{\phi}(\mathbf{z}_m \mid \mathbf{x})$ 비트를 구한다.
 
-이렇게 심을 수 있는 추가적인 메시지의 길이의 기댓값은 다음과 같으며, 다름 아닌 분포 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$의 Shannon entropy이다.
+이렇게 $\mathbf{z}$의 샘플링에 추가 정보를 심어 비트를 되돌려 받을 수 있다{{< ref 4 >}}. 되돌려 받을 수 있는 메시지의 길이의 기댓값은 다음과 같으며, 다름 아닌 분포 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$의 Shannon entropy이다.
 {{< eqlabel bits-back-cost >}}
 $$
 \mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid \mathbf{x})} [-\log q_{\phi}(\mathbf{z} \mid \mathbf{x})]
 $$
 
-이제 $N$개의 IID 샘플 $\mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)}$을 동시에 전송하는 상황을 생각해 보자. 각 샘플이 독립이므로 $n$번째 샘플을 보낼 때 $(n + 1)$번째 샘플에 대한 정보를 일부 심어서 보낼 수 있다. 따라서, $N \to \infty$일 때 하나의 샘플을 전송하기 위해 필요한 메시지의 평균 길이는 아래 값으로 수렴한다. 식 {{< eqref single-data-cost >}}에서 {{< eqref bits-back-cost >}}를 뺀 결과이다.
+이제 $N$ 개의 IID 샘플 $\mathbf{x}^{(1)}, \cdots, \mathbf{x}^{(N)}$을 동시에 전송하는 상황을 생각해 보자. 각 샘플이 독립이므로, $n$번째 샘플의 $\mathbf{z}^{(n)}$ 샘플링에 $(n + 1)$번째 샘플의 메시지 일부를 심을 수 있다. 이렇게 하면 전체 메시지의 길이가 줄어든다. 구체적인 알고리즘은 서술이 복잡해서 아래 toggle box에 숨겼다.
+
+{{< toggle title="$N$ 개의 샘플을 동시에 전송하는 알고리즘" >}}
+비트를 넣을 수 있는 스택 $B$를 도입하자. $B$에는 비트를 넣거나(push) 꺼낼(pop) 수 있으며, 마지막에 넣은 비트가 먼저 나온다.
+
+Sender는 $B$를 빈 상태로 초기화한 뒤, $n = N, N - 1, \cdots, 1$ 순서로 다음을 반복한다.
+
+1. $B$가 비어 있지 않으면, $B$의 비트들을 $m$으로 사용하여 $\mathbf{z}^{(n)}$을 결정한다. 이 과정에서 $B$의 약 $-\log q_{\phi}(\mathbf{z}^{(n)} \mid \mathbf{x}^{(n)})$ 개의 비트가 소비된다. $B$가 비어 있으면 $\mathbf{z}^{(n)}$을 $q_{\phi}(\mathbf{z} \mid \mathbf{x}^{(n)})$에서 자유롭게 샘플링한다.
+2. $p_{\theta}(\mathbf{x} \mid \mathbf{z}^{(n)})$를 이용해 $\mathbf{x}^{(n)}$을 encoding하여 얻은 $-\log p_{\theta}(\mathbf{x}^{(n)} \mid \mathbf{z}^{(n)})$ 개의 비트를 $B$에 넣는다.
+3. $p_{\theta}(\mathbf{z})$를 이용해 $\mathbf{z}^{(n)}$을 encoding해 얻은 $-\log p_{\theta}(\mathbf{z}^{(n)})$ 개의 비트를 $B$에 넣는다.
+
+모든 샘플을 처리한 후, $B$에 남아 있는 비트를 receiver에게 전송한다.
+
+Receiver는 sender가 수행한 과정들을 거꾸로 수행하면 된다. 구체적으로는, 전송받은 비트를 모두 $B$에 넣고 $n = 1, 2, \cdots, N$ 순서로 다음을 반복한다.
+
+1. $B$에서 비트를 꺼내, $p_{\theta}(\mathbf{z})$를 이용해 decoding하여 $\mathbf{z}^{(n)}$을 얻는다.
+2. $B$에서 비트를 꺼내, $p_{\theta}(\mathbf{x} \mid \mathbf{z})$를 이용해 decoding하여 $\mathbf{x}^{(n)}$을 얻는다.
+2. $q_{\phi}(\mathbf{z} \mid \mathbf{x}^{(n)})$를 이용해 $\mathbf{z}^{(n)}$을 encoding하여 나온 비트를 $B$에 넣는다.
+
+Sender의 각 단계에서 $B$에 $-\log p_{\theta}(\mathbf{x}^{(n)}, \mathbf{z}^{(n)})$ 비트가 추가되고, $n = N$을 제외하면 $-\log q_{\phi}(\mathbf{z}^{(n)} \mid \mathbf{x}^{(n)})$ 비트가 소비된다. 따라서, $N$개 샘플의 총 전송 비용 ($B$에 남는 비트 수)은 다음과 같다.
+
 $$
-\mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid \mathbf{x})} [-\log p_{\theta}(\mathbf{x}, \mathbf{z}) + \log q_{\phi}(\mathbf{z} \mid \mathbf{x})]
+\sum_{n=1}^{N} [-\log p_{\theta}(\mathbf{x}^{(n)}, \mathbf{z}^{(n)})] - \sum_{n=1}^{N-1} [-\log q_{\phi}(\mathbf{z}^{(n)} \mid \mathbf{x}^{(n)})]
 $$
+{{< /toggle >}}
+
+$N \to \infty$일 때, 하나의 샘플을 전송하기 위해 필요한 메시지의 평균 길이는 아래 값으로 수렴한다. 식 {{< eqref single-data-cost >}}에서 {{< eqref bits-back-cost >}}를 뺀 결과이다.
+$$
+\mathbb{E}_{\mathbf{x} \sim p_{\mathrm{data}}(\mathbf{x})} \mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid \mathbf{x})} [-\log p_{\theta}(\mathbf{x}, \mathbf{z}) + \log q_{\phi}(\mathbf{z} \mid \mathbf{x})]
+$$
+
+따라서 하나의 샘플 $\mathbf{x}$를 설명하는 데 필요한 비용을 식 {{< eqref description-cost >}}과 같이 정의할 수 있다.
 {{< /toggle >}}
 
 이제 wake phase의 목적 함수를 다음과 같이 쓸 수 있다.
@@ -225,9 +263,9 @@ $$
 
 ## Sleep Phase
 
-Sleep phase에서는 $\theta$를 고정하고 $\phi$를 학습시킨다. 식 {{< eqref wake-phase >}}의 목적 함수를 $\phi$에 대해 최적화하는 것도 좋은 접근이다. 하지만 이렇게 하면 목적 함수에 $q_{\phi}$에 대한 기댓값이 들어 있게 되어 $\phi$에 대해 최적화하기 난감하다. 지금까지 우리는 이렇게 기댓값을 취하는 분포에 $\phi$가 들어 있을 때 이를 $\phi$에 대해 미분하기 위해 log-derivative trick을 사용했었다. 뒤에서 살펴볼 VAE에서는 reparametrization trick을 사용한다. 하지만 이러한 trick들은 wake-sleep algorithm이 나올 당시에는 잘 알려져 있지 않거나 실제로 적용하기 어려운 상황이었으리라 조심스럽게 추측해 본다. 대신, sleep phase의 아이디어는 $p_{\theta}$에서 샘플링한 **가상의 데이터** $\tilde{\mathbf{x}}$를 이용해 다른 목적 함수를 최적화하는 것이다.
+Sleep phase에서는 $\theta$를 고정하고 $\phi$를 학습시킨다. 식 {{< eqref wake-phase >}}의 목적 함수를 $\phi$에 대해 최적화하는 것도 좋은 접근이다. 하지만 이렇게 하면 목적 함수에 $q_{\phi}$에 대한 기댓값이 들어 있게 되어 $\phi$에 대해 최적화하기 난감하다. 지금까지 우리는 이렇게 기댓값을 취하는 분포에 $\phi$가 들어 있을 때 이를 $\phi$에 대해 미분하기 위해 log-derivative trick을 사용했었다. 뒤에서 살펴볼 VAE에서는 reparametrization trick을 사용한다. 하지만 논문에서 사용한 생성 모델(Helmholtz machine)은 reparametrization trick을 적용할 수 있는 형태가 아니었고, log-derivative trick은 강화 학습에서 이미 알려져 있기는 했지만{{< ref 5 >}} 아직 이 분야와는 연결되지 않은 것으로 보인다.
 
-식 {{< eqref wake-phase-kl >}}에서 $\phi$가 등장하는 항은 첫 번째 KL divergence 뿐이다. 이 식이 최소화되려면 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$를 $p_{\theta}(\mathbf{z} \mid \mathbf{x})$에 최대한 가깝게 만들어야 한다는 것을 알 수 있다. $D_{\mathrm{KL}}(q_{\phi}(\mathbf{z} \mid \mathbf{x}) \| p_{\theta}(\mathbf{z} \mid \mathbf{x}))$를 최소화하는 것은 어렵지만, 두 분포의 위치를 바꾼 $D_{\mathrm{KL}}(p_{\theta}(\mathbf{z} \mid \mathbf{x}) \| q_{\phi}(\mathbf{z} \mid \mathbf{x}))$를 최소화하는 것은 가능하다. 다음 최적화 문제를 풀면 된다.
+대신, sleep phase의 아이디어는 $p_{\theta}$에서 샘플링한 **가상의 데이터** $\tilde{\mathbf{x}}$를 이용해 다른 목적 함수를 최적화하는 것이다. 식 {{< eqref wake-phase-kl >}}에서 $\phi$가 등장하는 항은 첫 번째 KL divergence 뿐이다. 이 식이 최소화되려면 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$를 $p_{\theta}(\mathbf{z} \mid \mathbf{x})$에 최대한 가깝게 만들어야 한다는 것을 알 수 있다. $D_{\mathrm{KL}}(q_{\phi}(\mathbf{z} \mid \mathbf{x}) \| p_{\theta}(\mathbf{z} \mid \mathbf{x}))$를 최소화하는 것은 어렵지만, 두 분포의 위치를 바꾼 $D_{\mathrm{KL}}(p_{\theta}(\mathbf{z} \mid \mathbf{x}) \| q_{\phi}(\mathbf{z} \mid \mathbf{x}))$를 최소화하는 것은 가능하다. 다음 최적화 문제를 풀면 된다.
 
 {{< eqlabel sleep-phase >}}
 $$
@@ -235,11 +273,12 @@ $$
 $$
 
 이 식에서는 기댓값을 취하는 분포가 $\theta$이므로, $\phi$에 대해 최적화하기 수월하다.
-이 최적화 문제가 KL divergence 최소화로 바뀌는 이유는 안쪽 기댓값에 $\phi$와 무관한 항 $\mathbb{E}_{\mathbf{z} \sim p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})} [\log p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})]$을 더하면 바로 알 수 있다.
+이 최적화 문제가 KL divergence 최소화로 바뀌는 이유는 안쪽 기댓값에 $\phi$와 무관한 항 $\mathbb{E}_{\mathbf{z} \sim p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})} [\log p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})]$을 더하면 바로 알 수 있다. 아래 식의 첫 번째 등호에서는 $p_{\theta}(\mathbf{z}) p_{\theta}(\tilde{\mathbf{x}} \mid \mathbf{z}) = p_{\theta}(\tilde{\mathbf{x}}, \mathbf{z}) = p_{\theta}(\tilde{\mathbf{x}}) p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})$임을 이용해 기댓값의 분포를 바꾸었다.
 
 $$
 \begin{align*}
-&\argmin_{\phi} \mathbb{E}_{\tilde{\mathbf{x}} \sim p_{\theta}(\tilde{\mathbf{x}})} \mathbb{E}_{\mathbf{z} \sim p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})} [- \log q_{\phi}(\mathbf{z} \mid \tilde{\mathbf{x}})] \\
+&\argmin_{\phi} \mathbb{E}_{\mathbf{z} \sim p_{\theta}(\mathbf{z})} \mathbb{E}_{\tilde{\mathbf{x}} \sim p_{\theta}(\mathbf{x} \mid \mathbf{z})} [- \log q_{\phi}(\mathbf{z} \mid \tilde{\mathbf{x}})] \\
+= \, &\argmin_{\phi} \mathbb{E}_{\tilde{\mathbf{x}} \sim p_{\theta}(\tilde{\mathbf{x}})} \mathbb{E}_{\mathbf{z} \sim p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})} [- \log q_{\phi}(\mathbf{z} \mid \tilde{\mathbf{x}})]  \\
 = \, &\argmin_{\phi} \mathbb{E}_{\tilde{\mathbf{x}} \sim p_{\theta}(\tilde{\mathbf{x}})} \mathbb{E}_{\mathbf{z} \sim p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})} \left[\log \frac{p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})}{q_{\phi}(\mathbf{z} \mid \tilde{\mathbf{x}})}\right] \\
 = \, &\argmin_{\phi} \mathbb{E}_{\tilde{\mathbf{x}} \sim p_{\theta}(\tilde{\mathbf{x}})} \left[ D_{\mathrm{KL}}(p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}}) \| q_{\phi}(\mathbf{z} \mid \tilde{\mathbf{x}})) \right]
 \end{align*}
@@ -262,7 +301,7 @@ Wake-sleep algorithm은 직관적이지만 두 가지 문제가 있다. 먼저, 
 
 # Variational Autoencoder
 
-드디어 VAE를 살펴볼 차례이다. VAE의 핵심은 두 가지이다.
+드디어 VAE를 살펴볼 차례이다{{< ref 1 >}}. VAE의 핵심은 두 가지이다.
 
 1. ELBO를 활용해, $\theta$와 $\phi$가 **동일한 목적 함수**를 공유하도록 한다.
 2. **Reparametrization trick**을 이용해 gradient를 계산한다.
@@ -361,6 +400,33 @@ $$
 그런데 importance sampling은 proposal distribution이 좋아야, 즉 $p_{\theta}(\mathbf{x}, \mathbf{z})$가 큰 영역에 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$가 집중되어 있어야 효과적이다. $q_{\phi}$가 나쁘면 사전 분포에서 샘플링하는 것과 크게 다르지 않을 수 있다. 하지만 여기에서는 적분값을 직접 근사하는 대신 Jensen's inequality를 적용해 **lower bound**를 구했기 때문에, $q_{\phi}$가 나쁘더라도 부등식 자체는 항상 성립한다. 다만 $q_{\phi}$가 나쁘면 bound가 느슨해져 최적화에 도움이 되지 않으므로, bound를 tight하게 만드는 것이 중요하다.
 
 Jensen's inequality에서 등호가 성립하는 조건은 $\log$ 안의 확률 변수가 상수일 때, 즉 $p_{\theta}(\mathbf{x}, \mathbf{z}) / q_{\phi}(\mathbf{z} \mid \mathbf{x})$가 $\mathbf{z}$에 의존하지 않을 때이다. 이는 $q_{\phi}(\mathbf{z} \mid \mathbf{x}) \propto p_{\theta}(\mathbf{x}, \mathbf{z})$, 즉 $q_{\phi}(\mathbf{z} \mid \mathbf{x}) = p_{\theta}(\mathbf{z} \mid \mathbf{x})$일 때 성립한다. 따라서 $\phi$를 최적화하여 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$를 true posterior $p_{\theta}(\mathbf{z} \mid \mathbf{x})$에 가깝게 만들수록 bound가 tight해진다. 이는 식 {{< eqref elbo-1 >}}에서 gap이 $D_{\mathrm{KL}}(q_{\phi} \| p_{\theta})$임을 확인한 것과 동일한 결론이다.
+
+### Reconstruction Term과 Regularization Term
+
+이번에는 ELBO를 더 구체적으로 살펴보면서 각 항에 어떤 의미를 부여할 수 있는지 확인해 보자.
+
+$$
+\mathcal{L}(\phi, \theta; \mathbf{x}) = \mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid \mathbf{x})}[\log p_{\theta}(\mathbf{x}, \mathbf{z}) - \log q_{\phi}(\mathbf{z} \mid \mathbf{x})]
+$$
+
+$\log p_{\theta}(\mathbf{x}, \mathbf{z}) = \log p_{\theta}(\mathbf{x} \mid \mathbf{z}) + \log p_{\theta}(\mathbf{z})$로 쓸 수 있다. 이때 $p_{\theta}(\mathbf{z})$는 $\mathbf{z}$의 밀도함수이기 때문에, $q_{\phi}(\mathbf{z} \mid \mathbf{x})$와 묶어 KL divergence로 나타낼 수 있다.
+
+$$
+\begin{align*}
+\mathcal{L}(\phi, \theta; \mathbf{x}) &= \mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid \mathbf{x})}[\log p_{\theta}(\mathbf{x} \mid \mathbf{z}) + \log p_{\theta}(\mathbf{z}) - \log q_{\phi}(\mathbf{z} \mid \mathbf{x})]\\
+&= \mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid \mathbf{x})}[\log p_{\theta}(\mathbf{x} \mid \mathbf{z})] - \mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid\mathbf{x})} \left[\log \frac{q_{\phi}(\mathbf{z} \mid \mathbf{x})}{p_{\theta}(\mathbf{z})}\right]\\
+&= \mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid \mathbf{x})}[\log p_{\theta}(\mathbf{x} \mid \mathbf{z})] - D_{\mathrm{KL}}(q_{\phi}(\mathbf{z} \mid \mathbf{x}) \| p_{\theta}(\mathbf{z}))
+\end{align*}
+$$
+
+이제 각 항의 의미를 살펴보자. 첫 번째 항의 의미를 풀어서 써 보면 다음과 같다. 
+> $\mathbf{x}$가 주어졌을 때, $q_{\phi}(\mathbf{z} \mid \mathbf{x})$로부터 $\mathbf{z}$를 샘플링한 뒤, 이로부터 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$를 통해 $\mathbf{x}$가 다시 나올 로그 확률밀도의 기댓값
+
+결국 이 항은 $q_{\phi}$가 제공한 $\mathbf{z}$로부터 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$가 원래의 $\mathbf{x}$를 얼마나 잘 복원하는지를 나타낸다. 이 값이 커질수록 복원이 잘 된다는 뜻이므로, 이 항을 **reconstruction term**이라고 부른다.
+
+두 번째 항은 두 확률 분포 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$와 $p_{\theta}(\mathbf{z})$의 KL divergence이다. ELBO를 최대화하면 이 항이 작아지는 방향으로 최적화되므로, $q_{\phi}(\mathbf{z} \mid \mathbf{x})$가 $\mathbf{z}$의 prior인 $p_{\theta}(\mathbf{z})$에 가까워진다. 그런데 우리는 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$가 $\mathbf{x}$의 특징을 잘 담은 $\mathbf{z}$를 추출할 수 있기를 원하는데, 이것이 $p_{\theta}(\mathbf{z})$와 비슷하도록 만들어 버리면 $\mathbf{x}$의 정보가 희석되어 버리는 것 아닌가 하는 걱정이 들 수 있다. 실제로 이 항은 각 $\mathbf{x}$에 대해 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$를 prior 쪽으로 끌어당기는 역할을 하여 reconstruction term과 상충한다. 모델은 이 두 항 사이의 균형을 맞추며, 복원을 위해 $\mathbf{z}$에 $\mathbf{x}$의 정보를 충분히 담으면서도 prior에서 너무 벗어나지 않는 지점을 찾게 된다.
+
+만약 ELBO에 reconstruction term만 있다면, $q_{\phi}(\mathbf{z} \mid \mathbf{x})$는 각 $\mathbf{x}$를 가장 잘 복원하는 $\mathbf{z}$ 하나에 모든 확률을 몰아 주는 방향으로 최적화될 것이다. 이렇게 하면 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$에서 샘플링한 $\mathbf{z}$로는 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$를 통해 의미 있는 $\mathbf{x}$를 생성할 수 있을지 몰라도, $p_{\theta}(\mathbf{z})$에서 샘플링한 $\mathbf{z}$를 사용하면 의미 있는 $\mathbf{x}$를 생성할 수 없게 된다. 두 번째 항은 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$가 prior $p_{\theta}(\mathbf{z})$에서 너무 벗어나지 않도록 한다. 이렇게 하면 잠재 공간이 prior의 구조를 따르게 되어 생성 모델이 제 기능을 할 수 있게 된다. 이런 의미에서 두 번째 항을 **regularization term**이라고 부른다.
 
 ## VAE의 목적 함수 최적화
 
@@ -480,7 +546,7 @@ $$
 
 ### 직관적인 설명
 
-추정량 1은 $\nabla_\theta \log p_\theta(\mathbf{z})$이다. 추정량 3을 chain rule을 이용해 다시 쓰면 $\nabla_{\phi} \log p_{\theta}(g_{\phi}(\boldsymbol{\epsilon})) = \nabla_\mathbf{z} \log p_\theta(\mathbf{z}) \cdot \nabla_\phi g_\phi(\boldsymbol{\epsilon})$이다. 형태는 다르지만, 둘 다 $\log p_\theta$를 **미분한 값**만 사용한다는 공통점이 있다. 두 식 모두 샘플링된 점 $\mathbf{z}$ 근방에서 $\log p_\theta$가 **어떻게 변하는지**를 나타내는 국소적 기울기 정보이다.
+추정량 1은 $\nabla_\theta \log p_\theta(\mathbf{z})$이다. 추정량 3을 chain rule을 이용해 다시 쓰면 $\nabla_{\phi} \log p_{\theta}(g_{\phi}(\boldsymbol{\epsilon})) = \nabla_\mathbf{z} \log p_\theta(\mathbf{z}) \cdot \nabla_\phi g_\phi(\boldsymbol{\epsilon})$이다. 형태는 다르지만, 둘 다 $\log p_\theta$를 **미분한 값**만 사용한다는 공통점이 있다. 두 식 모두 샘플링된 점 $\mathbf{z}$ 근방에서 $\log p_\theta$가 어떻게 변하는지를 나타내는 국소적 기울기 정보이다.
 
 반면, 추정량 2인 $\nabla_\phi \log q_\phi(\mathbf{z}) \cdot \log p_\theta(\mathbf{z})$에는 $\log p_\theta$의 기울기가 아닌 $\log p_\theta(\mathbf{z})$의 **값 자체**가 곱해져 있다. 이것이 왜 문제가 되는지 살펴보자.
 
@@ -488,7 +554,7 @@ $$
 
 다른 말로 하면, 추정량 1이나 3은 $p_{\theta}$의 기울기를 활용하는데, 이는 샘플링한 점 $\mathbf{z}$뿐만 아니라 그 주변 국소적인 영역에서의 정보도 활용하는 것이다. 하지만 추정량 2는 $p_{\theta}$의 값만 활용하기 때문에, 샘플링한 점 $\mathbf{z}$들에서 $p_{\theta}$의 크기 차이만 활용할 뿐 그 주변의 정보는 활용하지 못한다. 이렇듯 추정량 2가 샘플을 통해 얻는 정보가 더 적으므로, 비슷한 정확도를 달성하기 위해 더 많은 샘플이 필요하다. 더 많은 샘플이 필요하다는 것은 분산이 크다는 것이다.
 
-정리하면, 추정량 2의 분산이 큰 근본적 이유는 $\log p_\theta$의 **값 자체**가 들어 있기 때문이다. 추정량 1과 3은 $\log p_\theta$의 gradient만 사용하므로 이 문제를 피할 수 있다.
+정리하면, 추정량 2의 분산이 큰 근본적 이유는 $\log p_\theta$의 값 자체가 들어 있기 때문이다. 추정량 1과 3은 $\log p_\theta$의 gradient만 사용하므로 이 문제를 피할 수 있다.
 
 ### Numerical Example
 
@@ -553,6 +619,25 @@ Reparametrization trick의 분산은 $\theta$ gradient의 분산과 동일하고
 
 이 포스트에서는 이전 포스트에 이어 latent variable model을 살펴보았다. 먼저, 베이지안 추론을 이용해 latent variable model의 posterior를 다루려고 할 때 발생하는 세 가지 문제를 살펴보았다. 우선 MCMC를 버리고 variational Bayes를 채택해 문제점 3을 해결했고, amortized inference를 도입해 문제점 1을 해결했다. 이제 우리의 모델 $p_{\theta}$와 함께 posterior를 근사하는 $q_{\phi}$를 함께 학습시켜야 한다.
 
-그 이후, 서로 다른 목적 함수를 이용해 $\theta$와 $\phi$를 각각 최적화하는 wake-sleep algorithm을 살펴보았다. 다음으로 ELBO라는 하나의 목적 함수를 이용해 두 매개변수를 모두 최적화하는 VAE를 살펴보았다. ELBO를 통해 $\phi$를 최적화하는 과정에서 분산이 지나치게 커져 몬테 카를로 근사를 효율적으로 사용할 수 없는 문제가 발생했다. VAE에서는 이를 reparametrization trick으로 해결했다.
+그 이후, 서로 다른 목적 함수를 이용해 $\theta$와 $\phi$를 각각 최적화하는 wake-sleep algorithm을 살펴보았다. 다음으로 ELBO라는 하나의 목적 함수를 이용해 두 매개변수를 모두 최적화하는 VAE를 살펴보았다. ELBO를 통해 $\phi$를 최적화하는 과정에서 분산이 지나치게 커져 몬테 카를로 근사를 효율적으로 사용할 수 없는 문제가 발생했다. VAE에서는 이를 reparametrization trick으로 해결했다. 결과적으로, wake-sleep algorithm에서 지적했던 문제들이 모두 해결되었다.
 
 다음 포스트에서는 VAE의 문제점을 살펴보고, 이를 일부 극복하는 Hierarchical VAE (HVAE)에 대해 알아보자.
+
+{{< reflist >}}
+{{< refitem 1 >}}
+Kingma, Diederik P., and Welling, Max. "[Auto-encoding variational bayes](https://arxiv.org/abs/1312.6114)". *arXiv preprint*, 2013.
+{{< /refitem >}}
+{{< refitem 2 >}}
+Hinton, Geoffrey E., Dayan, Peter, Frey, Brendan J., and Neal, Radford M. "[The "wake-sleep" algorithm for unsupervised neural networks](https://www.science.org/doi/10.1126/science.7761831)". *Science*, 268(5214): 1158–1161, 1995.
+{{< /refitem >}}
+{{< refitem 3 >}}
+Lai, Chieh-Hsin, Song, Yang, Kim, Dongjun, Mitsufuji, Yuki, and Ermon, Stefano. "[The principles of diffusion models](https://arxiv.org/abs/2510.21890)". *arXiv preprint*, 2025.
+{{< /refitem >}}
+* 이 시리즈의 전반적인 내용을 참고했다.
+{{< refitem 4 >}}
+Hinton, Geoffrey E., and van Camp, Drew. "[Keeping neural networks simple by minimizing the description length of the weights](https://www.cs.toronto.edu/~hinton/absps/colt93.pdf)". *Proceedings of the sixth annual conference on Computational learning theory*, pp. 5–13, 1993.
+{{< /refitem >}}
+{{< refitem 5 >}}
+Williams, Ronald J. "[Simple statistical gradient-following algorithms for connectionist reinforcement learning](https://link.springer.com/article/10.1007/BF00992696)". *Machine Learning*, 8(3–4): 229–256, 1992.
+{{< /refitem >}}
+{{< /reflist >}}
