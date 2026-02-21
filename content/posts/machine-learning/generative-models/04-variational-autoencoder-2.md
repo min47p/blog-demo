@@ -439,6 +439,7 @@ $$
 ## VAE의 목적 함수 최적화
 
 VAE의 목적 함수를 구체적으로 최적화하는 방법을 알아보자. 먼저 VAE의 목적 함수를 다시 적어 보겠다.
+{{< eqlabel vae-objective >}}
 $$
 \begin{align*}
 J(\theta, \phi) &= \mathbb{E}_{\mathbf{x} \sim p_{\mathrm{data}}(\mathbf{x})} [\mathcal{L}(\phi, \theta; \mathbf{x})]\\
@@ -502,6 +503,10 @@ $$
 
 여기서 $\boldsymbol{\sigma}_{\phi}(\mathbf{x})$는 $\boldsymbol{\Sigma}_{\phi}(\mathbf{x})$의 대각 원소의 제곱근으로 이루어진 벡터이고, $\odot$은 원소별 곱셈이다. 이렇게 정의된 $\mathbf{z}$의 분포가 $\mathcal{N}(\boldsymbol{\mu}_{\phi}(\mathbf{x}), \boldsymbol{\Sigma}_{\phi}(\mathbf{x}))$와 동일하다는 것은 쉽게 확인할 수 있다. 앞으로 이 관계를 $\mathbf{z}_{\phi}(\boldsymbol{\epsilon}) = \boldsymbol{\mu}_{\phi}(\mathbf{x}) + \boldsymbol{\sigma}_{\phi}(\mathbf{x}) \odot \boldsymbol{\epsilon}$으로 표기하겠다. 이 표기는 $\mathbf{z}$가 $\phi$에 의존하는 결정론적 함수임을 명시적으로 보여 준다.
 
+{{< callout type="Note" >}}
+이처럼 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$가 졍규 분포 형태일 때만 reparametrization trick을 적용할 수 있는 것은 아니다. $\boldsymbol{\epsilon}$에 대한 기초적인 분포와 $\mathbf{x}$에 대한 결정론적 함수의 조합으로 나타낼 수 있는 분포에는 모두 적용할 수 있다. 논문의 section 2.4에서 reparametrization trick을 적용할 수 있는 상황에 대해 구체적으로 설명하고 있다{{< ref 1 >}}.
+{{< /callout >}}
+
 이제 $\mathbf{z}$에 대한 기댓값이 주어지면 $\boldsymbol{\epsilon}$에 대한 기댓값으로 바꿀 수 있다. 아래 식에서 $f$는 임의의 함수이다.
 
 $$
@@ -531,7 +536,7 @@ $$
 
 ## 몬테 카를로 추정량의 분산
 
-식 {{< eqref grad-phi-with-reparametrization >}}의 분산이 {{< eqref grad-phi-with-log-derivative >}}보다 작은 이유를 설명하기는 쉽지 않다. VAE 논문에서조차 log-derivative trick으로 구한 추정량의 분산이 크다는 사실만 언급할 뿐, 그 이유를 설명하지는 않는다. 아마 당시에는 이 사실이 직관적이나 실험적으로 확인되었을 뿐 구체적인 분석이 이루어진 것 같지는 않다. 여기서는 두 가지 방법으로 설명하겠다. 첫 번째는 직관적인 설명, 두 번째는 간단한 1차원 정규 분포를 이용한 numerical example이다.
+식 {{< eqref grad-phi-with-reparametrization >}}의 분산이 {{< eqref grad-phi-with-log-derivative >}}보다 작은 이유를 설명하기는 쉽지 않다. VAE 논문에서조차 log-derivative trick으로 구한 추정량의 분산이 크다는 사실만 언급할 뿐, 그 이유를 설명하지는 않는다. 아마 당시에는 이 사실이 직관적이나 실험적으로 확인되었을 뿐 구체적인 분석이 이루어진 것 같지는 않다. 여기서도 구체적으로 살펴보지는 말고, 두 가지 방법으로 이해해 보자. 첫 번째는 직관적인 설명, 두 번째는 간단한 1차원 정규 분포를 이용한 numerical example이다.
 
 상황을 단순화하자. 두 매개화된 분포 $p_{\theta}(\mathbf{z})$와 $q_{\phi}(\mathbf{z})$가 있다. 이 중 $q_{\phi}(\mathbf{z})$는 표준 정규 분포로 reparametrization이 가능하다. 즉, $\boldsymbol{\epsilon} \sim \mathcal{N}(0, I)$와 결정론적 함수 $g_{\phi}$를 통해 $\mathbf{z} = g_{\phi}(\boldsymbol{\epsilon})$로 나타낼 수 있다. 이때 다음 두 기댓값에 관심을 가지자.
 $$
@@ -554,9 +559,7 @@ $$
 
 ### 직관적인 설명
 
-추정량 1은 $\nabla_\theta \log p_\theta(\mathbf{z})$이다. 추정량 3을 chain rule을 이용해 다시 쓰면 $\nabla_{\phi} \log p_{\theta}(g_{\phi}(\boldsymbol{\epsilon})) = \nabla_\mathbf{z} \log p_\theta(\mathbf{z}) \cdot \nabla_\phi g_\phi(\boldsymbol{\epsilon})$이다. 형태는 다르지만, 둘 다 $\log p_\theta$를 **미분한 값**만 사용한다는 공통점이 있다. 두 식 모두 샘플링된 점 $\mathbf{z}$ 근방에서 $\log p_\theta$가 어떻게 변하는지를 나타내는 국소적 기울기 정보이다.
-
-반면, 추정량 2인 $\nabla_\phi \log q_\phi(\mathbf{z}) \cdot \log p_\theta(\mathbf{z})$에는 $\log p_\theta$의 기울기가 아닌 $\log p_\theta(\mathbf{z})$의 **값 자체**가 곱해져 있다. 이것이 왜 문제가 되는지 살펴보자.
+추정량 1은 $\nabla_\theta \log p_\theta(\mathbf{z})$이다. 추정량 3을 chain rule을 이용해 다시 쓰면 $\nabla_{\phi} \log p_{\theta}(g_{\phi}(\boldsymbol{\epsilon})) = \nabla_\mathbf{z} \log p_\theta(\mathbf{z}) \cdot \nabla_\phi g_\phi(\boldsymbol{\epsilon})$이다. 형태는 다르지만, 둘 다 $\log p_\theta$를 **미분한 값**만 사용한다는 공통점이 있다. 두 식 모두 샘플링된 점 $\mathbf{z}$ 근방에서 $\log p_\theta$가 어떻게 변하는지를 나타내는 국소적 기울기 정보이다. 반면, 추정량 2인 $\nabla_\phi \log q_\phi(\mathbf{z}) \cdot \log p_\theta(\mathbf{z})$에는 $\log p_\theta$의 기울기가 아닌 $\log p_\theta(\mathbf{z})$의 **값 자체**가 곱해져 있다. 이것이 왜 문제가 되는지 살펴보자.
 
 추정량 1이나 3에 포함된 $\log p_\theta(\mathbf{z})$의 gradient는 기본적으로 '어느 방향으로 움직여야 $p_\theta(\mathbf{z})$가 증가하는가'라는 정보를 준다. 하지만 추정량 2에 들어 있는 $\log p_\theta(\mathbf{z})$는 '이 $\mathbf{z}$가 얼마나 좋은가'라는 스칼라 평가만 줄 뿐, 어느 방향으로 개선할 수 있는지는 알려주지 않는다. 물론 score function $\nabla_\phi \log q_\phi(\mathbf{z})$와 곱해져서 간접적으로 gradient 정보가 만들어진다. 하지만 이는 샘플링한 $\mathbf{z}$ 중에서 나쁜 $\mathbf{z}$에서 좋은 $\mathbf{z}$ 방향으로 확률 분포 $q_{\phi}$를 움직이는 역할을 하는데, 여기에서 $p_{\theta}$의 기울기에 대한 정보를 활용하지 못한다.
 
@@ -623,13 +626,238 @@ $$
 
 Reparametrization trick의 분산은 $\theta$ gradient의 분산과 동일하고, log-derivative trick의 분산은 7배 이상 크다. 이 차이는 $\phi \ne \theta$이거나 $\mathbf{z}$가 다차원일 때 더 커질 것이다.
 
+## VAE의 학습 과정
+
+이제 구체적인 모델의 예시와 함께 VAE의 학습 과정을 간단히 살펴보자. 대부분은 이미 설명했던 내용의 반복이지만, 적절한 모델링 하에서 regularization term을 해석적으로 계산할 수 있다는 점을 강조하고 싶어 구체적으로 적었다.
+
+### 모델의 정의
+
+이 절에서는 다음과 같은 모델을 활용할 것이다. 우리가 지금까지 예시로 들어 왔던 것과 똑같지만 다시 한번 설명하겠다.
+
+먼저, $\mathbf{z}$의 prior인 $p_{\theta}(\mathbf{z})$는 표준 정규 분포이다. $\theta$에 의존하지 않는 분포이므로 그냥 $p(\mathbf{z})$라고 표기해도 된다.
+$$
+p(\mathbf{z}) = \mathcal{N}(\mathbf{z}; \mathbf{0}, \mathbf{I})
+$$
+
+그리고 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$와 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$는 다음과 같은 정규 분포로 정의된다.
+$$
+p_{\theta}(\mathbf{x} \mid \mathbf{z}) = \mathcal{N}(\mathbf{x}; \boldsymbol{\mu}_{\theta}(\mathbf{z}), \boldsymbol{\Sigma}_{\theta}(\mathbf{z}))\;, \qquad
+q_{\phi}(\mathbf{z} \mid \mathbf{x}) = \mathcal{N}(\mathbf{z}; \boldsymbol{\mu}_{\phi}(\mathbf{x}), \boldsymbol{\Sigma}_{\phi}(\mathbf{x}))
+$$
+여기서 $\boldsymbol{\mu}_{\theta}(\mathbf{z})$와 $\boldsymbol{\mu}_{\phi}(\mathbf{x})$는 신경망의 출력이다. $\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$와 $\boldsymbol{\Sigma}_{\phi}(\mathbf{x})$는 모두 신경망을 이용해 정의한 대각 행렬이며, 대각 원소의 양수 조건을 보장하기 위해 다음과 같이 정의한다.
+
+$$
+\boldsymbol{\Sigma}_{\theta}(\mathbf{z}) = \mathrm{diag}(\exp(\mathbf{s}_{\theta}(\mathbf{z}))), \qquad
+\boldsymbol{\Sigma}_{\phi}(\mathbf{x}) = \mathrm{diag}(\exp(\mathbf{s}_{\phi}(\mathbf{x})))
+$$
+
+여기서 $\mathbf{s}_{\theta}(\mathbf{z})$와 $\mathbf{s}_{\phi}(\mathbf{x})$는 신경망의 출력이다. 지수 함수를 통해 대각 원소가 항상 양수가 되도록 한다. 앞 절에서 reparametrization trick을 설명할 때 정의한 표준 편차 벡터와의 관계는 $\boldsymbol{\sigma}_{\phi}(\mathbf{x}) = \exp(\mathbf{s}_{\phi}(\mathbf{x}) / 2)$이다.
+
+### 목적 함수
+
+목적 함수로는 ELBO의 원래 정의인
+
+$$
+\mathcal{L}(\phi, \theta; \mathbf{x}) = \mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid \mathbf{x})}[\log p_{\theta}(\mathbf{x}, \mathbf{z}) - \log q_{\phi}(\mathbf{z} \mid \mathbf{x})]
+$$
+
+보다 reconstruction term과 regularization term으로 분해한
+
+$$
+\mathcal{L}(\phi, \theta; \mathbf{x}) = \mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid \mathbf{x})}[\log p_{\theta}(\mathbf{x} \mid \mathbf{z})] - D_{\mathrm{KL}}(q_{\phi}(\mathbf{z} \mid \mathbf{x}) \| p(\mathbf{z}))
+$$
+
+을 사용하는 것이 더 편할 뿐만 아니라 더 정확하다. 왜냐하면 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$와 $p(\mathbf{z})$를 모두 정규 분포로 정의했으므로, 두 번째 항인 KL divergence를 해석적으로 계산할 수 있기 때문이다. 이렇게 하면 목적 함수에서 몬테 카를로로 근사해야 하는 부분이 첫 번째 항 하나로 줄어들기 때문에 추정량의 분산도 줄어든다.
+
+$q_{\phi}(\mathbf{z} \mid \mathbf{x}) = \mathcal{N}(\mathbf{z}; \boldsymbol{\mu}_{\phi}(\mathbf{x}), \mathrm{diag}(\exp(\mathbf{s}_{\phi}(\mathbf{x}))))$와 $p(\mathbf{z}) = \mathcal{N}(\mathbf{z}; \mathbf{0}, \mathbf{I})$ 사이의 KL divergence는 다음과 같다. 아래 식에서 $d$는 $\mathbf{z}$의 차원이고, $\mathbf{s}_{\phi}(\mathbf{x})$의 $i$번째 원소를 $\mathbf{s}_{\phi}(\mathbf{x})_i$로 나타냈다. 식에서 $\mathbf{z}$가 깔끔하게 사라진 것을 확인할 수 있다. 구체적인 계산 과정은 toggle box 안에 넣었다.
+
+$$
+D_{\mathrm{KL}}(q_{\phi}(\mathbf{z} \mid \mathbf{x}) \| p(\mathbf{z})) = \frac{1}{2} \sum_{i=1}^{d} \left( -\mathbf{s}_{\phi}(\mathbf{x})_i + \exp(\mathbf{s}_{\phi}(\mathbf{x})_i) + \boldsymbol{\mu}_{\phi}(\mathbf{x})_i^2 - 1 \right)
+$$
+
+{{< toggle title="KL divergence 계산" >}}
+먼저 두 정규 분포 $q(\mathbf{z}) = \mathcal{N}(\mathbf{z}; \boldsymbol{\mu}, \boldsymbol{\Sigma})$와 $p = \mathcal{N}(\mathbf{0}, \mathbf{I})$ 사이의 KL divergence를 구하자.
+
+$$
+D_{\mathrm{KL}}(q \| p) = \mathbb{E}_{\mathbf{z} \sim q(\mathbf{z})} \left[ \log q(\mathbf{z}) - \log p(\mathbf{z}) \right]
+$$
+
+$d$차원 정규 분포의 로그 밀도 함수는 다음과 같다.
+
+$$
+\begin{align*}
+\log q(\mathbf{z}) &= -\frac{d}{2}\log(2\pi) - \frac{1}{2}\log \det \boldsymbol{\Sigma} - \frac{1}{2}(\mathbf{z} - \boldsymbol{\mu})^T \boldsymbol{\Sigma}^{-1} (\mathbf{z} - \boldsymbol{\mu}) \\
+\log p(\mathbf{z}) &= -\frac{d}{2}\log(2\pi) - \frac{1}{2}\mathbf{z}^T \mathbf{z}
+\end{align*}
+$$
+
+두 식의 차이를 구하면 $-\frac{d}{2}\log(2\pi)$가 소거된다.
+
+$$
+\log q(\mathbf{z}) - \log p(\mathbf{z}) = -\frac{1}{2}\log \det \boldsymbol{\Sigma} - \frac{1}{2}(\mathbf{z} - \boldsymbol{\mu})^T \boldsymbol{\Sigma}^{-1} (\mathbf{z} - \boldsymbol{\mu}) + \frac{1}{2}\mathbf{z}^T \mathbf{z}
+$$
+
+$\mathbf{z} \sim \mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})$에 대해 기댓값을 취하자. 첫 번째 항은 $\mathbf{z}$에 의존하지 않으므로 그대로이다. 두 번째 항은 다음과 같이 계산된다. 정규 분포의 성질에 의해 $\mathbf{u} = \boldsymbol{\Sigma}^{-1/2}(\mathbf{z} - \boldsymbol{\mu})$로 치환하면 $\mathbf{u} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$이므로,
+
+$$
+\mathbb{E}_{\mathbf{z} \sim q}[(\mathbf{z} - \boldsymbol{\mu})^T \boldsymbol{\Sigma}^{-1} (\mathbf{z} - \boldsymbol{\mu})] = \mathbb{E}_{\mathbf{u}}[\mathbf{u}^T \mathbf{u}] = d
+$$
+
+이다. 세 번째 항은 $\mathbb{E}[\mathbf{z}] = \boldsymbol{\mu}$와 $\mathrm{Cov}(\mathbf{z}) = \boldsymbol{\Sigma}$를 이용하면 다음과 같다.
+
+$$
+\mathbb{E}_{\mathbf{z} \sim q}[\mathbf{z}^T \mathbf{z}] = \mathrm{tr}(\mathrm{Cov}(\mathbf{z})) + \mathbb{E}[\mathbf{z}]^T \mathbb{E}[\mathbf{z}] = \mathrm{tr}(\boldsymbol{\Sigma}) + \boldsymbol{\mu}^T \boldsymbol{\mu}
+$$
+
+대입하면 다음을 얻는다.
+
+$$
+D_{\mathrm{KL}}(q \| p) = \frac{1}{2} \left( -\log \det \boldsymbol{\Sigma} - d + \mathrm{tr}(\boldsymbol{\Sigma}) + \boldsymbol{\mu}^T \boldsymbol{\mu} \right)
+$$
+
+마지막으로, $\boldsymbol{\Sigma} = \mathrm{diag}(\exp(\mathbf{s}))$를 대입하자. 대각 행렬의 행렬식과 대각합은 다음과 같다.
+
+$$
+\log \det \boldsymbol{\Sigma} = \sum_{i=1}^{d} \mathbf{s}_i, \qquad \mathrm{tr}(\boldsymbol{\Sigma}) = \sum_{i=1}^{d} \exp(\mathbf{s}_i)
+$$
+
+따라서 최종 결과는 다음과 같다.
+
+$$
+D_{\mathrm{KL}}(q \| p) = \frac{1}{2} \sum_{i=1}^{d} \left( -\mathbf{s}_i + \exp(\mathbf{s}_i) + \boldsymbol{\mu}_i^2 - 1 \right)
+$$
+{{< /toggle >}}
+
+이제 목적 함수인 $J(\theta, \phi)$ (식 {{< eqref vae-objective >}} 참고) 를 $\theta$와 $\phi$로 각각 미분해 보자. 먼저 $\theta$로 미분하면 두 번째 KL divergence 항이 사라진다. 이는 우리가 $\mathbf{z}$의 prior를 $\theta$와 관련 없는 표준 정규 분포로 설정했기 때문이다.
+
+$$
+\nabla_{\theta} J(\theta, \phi) = \mathbb{E}_{\mathbf{x} \sim p_{\mathrm{data}}(\mathbf{x})} \mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid \mathbf{x})} [\nabla_{\theta} \log p_{\theta}(\mathbf{x} \mid \mathbf{z})]
+$$
+
+다음으로, $\phi$로 미분해 보자. 기댓값이 있는 첫 번째 항에는 reparametrization trick을 적용해야 한다. 두 번째 KL divergence 항은 해석적으로 계산했으므로, 그 gradient도 해석적으로 계산할 수 있다.
+
+$$
+\nabla_{\phi} J(\theta, \phi) = \mathbb{E}_{\mathbf{x} \sim p_{\mathrm{data}}(\mathbf{x})} \left[ \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})} [\nabla_{\phi} \log p_{\theta}(\mathbf{x} \mid \mathbf{z}_{\phi}(\boldsymbol{\epsilon}))] - \nabla_{\phi} D_{\mathrm{KL}}(q_{\phi}(\mathbf{z} \mid \mathbf{x}) \| p(\mathbf{z})) \right]
+$$
+
+몬테 카를로 추정량은 다음과 같다. 두 번째 항은 해석적으로 계산되므로, 몬테 카를로 근사가 필요한 부분은 첫 번째 항뿐이다.
+
+$$
+\nabla_{\phi} J(\theta, \phi) \approx \frac{1}{N} \sum_{n=1}^{N} \left[ \frac{1}{K} \sum_{k=1}^{K} \nabla_{\phi} \log p_{\theta}(\mathbf{x}^{(n)} \mid \mathbf{z}_{\phi}(\boldsymbol{\epsilon}^{(n, k)})) - \nabla_{\phi} D_{\mathrm{KL}}(q_{\phi}(\mathbf{z} \mid \mathbf{x}^{(n)}) \| p(\mathbf{z})) \right]
+$$
+
+식 {{< eqref grad-phi-with-reparametrization >}}의 추정량과 비교하면, 원래 기댓값 안에 있던 $\log q_{\phi}$ 관련 항이 KL divergence로 분리되어 해석적으로 처리되었다. 이로 인해 추정량의 분산이 더욱 줄어든다.
+
+### 학습 과정
+
+다음으로 학습 과정을 간단히 살펴보자. 학습 데이터셋 $\mathcal{D} = \{\mathbf{x}^{(1)}, \ldots, \mathbf{x}^{(M)}\}$이 주어졌을 때, VAE의 학습 알고리즘은 다음과 같다.
+
+1. $\theta$와 $\phi$를 초기화한다.
+2. 수렴할 때까지 다음을 반복한다.
+   1. $\mathcal{D}$에서 batch $\{\mathbf{x}^{(1)}, \ldots, \mathbf{x}^{(N)}\}$를 샘플링한다.
+   2. 각 $n = 1, \ldots, N$에 대해 $\boldsymbol{\epsilon}^{(n, k)} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$를 $K$개 샘플링한다.
+   3. 목적 함수의 gradient의 몬테 카를로 추정량을 계산한다. $$\nabla_{\theta} J(\theta, \phi) \approx \frac{1}{NK} \sum_{n=1}^{N} \sum_{k=1}^{K} \nabla_{\theta} \log p_{\theta}(\mathbf{x}^{(n)} \mid \mathbf{z}_{\phi}(\boldsymbol{\epsilon}^{(n, k)}))$$ $$\nabla_{\phi} J(\theta, \phi) \approx \frac{1}{N} \sum_{n=1}^{N} \left[ \frac{1}{K} \sum_{k=1}^{K} \nabla_{\phi} \log p_{\theta}(\mathbf{x}^{(n)} \mid \mathbf{z}_{\phi}(\boldsymbol{\epsilon}^{(n, k)})) - \nabla_{\phi} D_{\mathrm{KL}}(q_{\phi}(\mathbf{z} \mid \mathbf{x}^{(n)}) \| p(\mathbf{z})) \right]$$
+   4. Gradient를 이용해 $\theta$와 $\phi$를 업데이트한다.
+
+### 샘플링 과정
+
+마지막으로 학습이 끝난 모델에서 샘플링하는 과정을 살펴보자.
+
+1. $p(\mathbf{z})$에서 $\mathbf{z}$를 샘플링한다.
+2. $p_{\theta}(\mathbf{x} \mid \mathbf{z})$에서 $\mathbf{x}$를 샘플링한다.
+
+한편, $p_{\theta}(\mathbf{x} \mid \mathbf{z})$는 정규분포 $\mathcal{N}(\boldsymbol{\mu}_{\theta}(\mathbf{z}), \boldsymbol{\Sigma}_{\theta}(\mathbf{z}))$로 정의된다. 이 분포에서 직접 샘플링을 수행할 필요 없이, 그냥 $\mathbf{x} = \boldsymbol{\mu}_{\theta}(\mathbf{z})$로 놓아도 큰 문제 없다.
+
+그러면 처음부터 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$를 확률 분포로 정의하지 말고 $\mathbf{x} = \boldsymbol{\mu}_{\theta}(\mathbf{z})$로 결정론적으로 정의하면 안 되나? 라는 자연스러운 의문이 생긴다. $p_{\theta}(\mathbf{x} \mid \mathbf{z})$를 확률 분포로 정의한 것은 실제로 그 분포에서 샘플링하기 위해서가 아니라, 베이지안 추론이라는 이론적 배경을 활용해 목적 함수(ELBO)를 유도하기 위한 것이다. 실제로 이 정의 때문에 아래에서 살펴볼 '흐릿한 결과물' 문제가 발생하기도 한다. $\mathbf{x}$와 $\mathbf{z}$의 관계를 결정론적으로 정의하는 접근은 이후 GAN이나 normalizing flow를 다룰 때 살펴보자.
+
+## VAE의 한계
+
+ELBO를 목적 함수로 사용하는 VAE는 이론적으로 매우 우아하다. 하지만 몇 가지 근본적인 한계가 있다{{< ref 3 >}}.
+
+### 한계 1. 흐릿한 결과물
+
+VAE로 생성한 이미지는 흐릿한 경우가 많은데, 이는 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$가 확률 분포로 정의되기 때문이다. 선명한 이미지의 샘플이 주어지더라도, 하나의 $\mathbf{z}$에 대응될 수 있는 여러 $\mathbf{x}$가 평균화되면서 흐릿한 출력을 만들어 낸다.
+
+이 현상을 더 구체적으로 분석해 보자. $q_{\phi}(\mathbf{z} \mid \mathbf{x})$를 고정하고, $p_{\theta}(\mathbf{x} \mid \mathbf{z}) = \mathcal{N}(\mathbf{x}; \boldsymbol{\mu}_{\theta}(\mathbf{z}), \sigma^2 \mathbf{I})$으로 놓자. 즉, $p_{\theta}(\mathbf{x} \mid \mathbf{z})$의 공분산을 고정되어 있는 (비교적 단순한) 모델을 생각하자.
+
+이때, ELBO 최적화는 다음과 같이 제곱 오차의 평균(MSE)를 최소화하는 것과 동치이다.
+
+{{< eqlabel mse >}}
+$$
+\theta = \argmin_{{\theta}} \mathbb{E}_{\mathbf{x} \sim p_{\mathrm{data}}(\mathbf{x})} \mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid \mathbf{x})} \left[ \| \mathbf{x} - \boldsymbol{\mu}_{\theta}(\mathbf{z}) \|^2 \right]
+$$
+
+{{< toggle title="유도 과정" >}}
+$q_{\phi}$가 고정되어 있으므로, $\theta$에 대한 ELBO 최적화에서 KL divergence 항은 상수이다. 따라서 reconstruction term만 최대화하면 된다.
+
+$$
+\theta = \argmax_{\theta} \; \mathbb{E}_{p_{\mathrm{data}}(\mathbf{x})} \mathbb{E}_{q_{\phi}(\mathbf{z} \mid \mathbf{x})} [\log p_{\theta}(\mathbf{x} \mid \mathbf{z})]
+$$
+
+$p_{\theta}(\mathbf{x} \mid \mathbf{z}) = \mathcal{N}(\mathbf{x}; \boldsymbol{\mu}_{\theta}(\mathbf{z}), \sigma^2 \mathbf{I})$의 로그 밀도를 대입하면,
+
+$$
+\log p_{\theta}(\mathbf{x} \mid \mathbf{z}) = -\frac{d}{2}\log(2\pi\sigma^2) - \frac{1}{2\sigma^2} \| \mathbf{x} - \boldsymbol{\mu}_{\theta}(\mathbf{z}) \|^2
+$$
+
+첫 번째 항은 $\theta$에 의존하지 않으므로, 위 식을 최대화하는 것은 $\| \mathbf{x} - \boldsymbol{\mu}_{\theta}(\mathbf{z}) \|^2$의 기댓값을 최소화하는 것과 동치이다.
+{{< /toggle >}}
+
+$\boldsymbol{\mu}_{\theta}(\mathbf{z})$의 표현력이 충분하다고 가정하면, 위 최적화 문제의 해는 다음과 같다.
+
+$$
+\boldsymbol{\mu}_{\theta}^*(\mathbf{z}) = \frac{\mathbb{E}_{p_{\mathrm{data}}(\mathbf{x})}[q_{\phi}(\mathbf{z} \mid \mathbf{x}) \cdot \mathbf{x}]}{\mathbb{E}_{p_{\mathrm{data}}(\mathbf{x})}[q_{\phi}(\mathbf{z} \mid \mathbf{x})]}
+$$
+
+MSE 최소화 문제의 해가 위와 같이 가중 평균으로 나타난다는 사실은 잘 알려져 있다. 구체적인 유도 과정은 아래와 같다.
+
+{{< toggle title="유도 과정" >}}
+표현력이 충분하다고 가정했으므로, 각 $\mathbf{z}$에 대해 $\boldsymbol{\mu}_{\theta}(\mathbf{z})$를 독립적으로 최적화할 수 있다. 이렇게 독립적으로 풀기 위해서는 먼저 식 {{< eqref mse >}}에서 $\mathbf{z}$를 고정해야 한다.
+
+$$
+\int p_{\mathrm{data}}(\mathbf{x}) \, q_{\phi}(\mathbf{z} \mid \mathbf{x}) \, \| \mathbf{x} - \boldsymbol{\mu}_{\theta}(\mathbf{z}) \|^2 \, d\mathbf{x}
+$$
+
+$\boldsymbol{\mu}_{\theta}(\mathbf{z})$로 미분하여 0으로 놓으면,
+
+$$
+\int p_{\mathrm{data}}(\mathbf{x}) \, q_{\phi}(\mathbf{z} \mid \mathbf{x}) \, (\mathbf{x} - \boldsymbol{\mu}_{\theta}(\mathbf{z})) \, d\mathbf{x} = \mathbf{0}
+$$
+
+이를 정리하면 다음을 얻는다.
+
+$$
+\boldsymbol{\mu}_{\theta}^*(\mathbf{z}) = \frac{\int p_{\mathrm{data}}(\mathbf{x}) \, q_{\phi}(\mathbf{z} \mid \mathbf{x}) \, \mathbf{x} \, d\mathbf{x}}{\int p_{\mathrm{data}}(\mathbf{x}) \, q_{\phi}(\mathbf{z} \mid \mathbf{x}) \, d\mathbf{x}} = \frac{\mathbb{E}_{p_{\mathrm{data}}(\mathbf{x})}[q_{\phi}(\mathbf{z} \mid \mathbf{x}) \cdot \mathbf{x}]}{\mathbb{E}_{p_{\mathrm{data}}(\mathbf{x})}[q_{\phi}(\mathbf{z} \mid \mathbf{x})]}
+$$
+{{< /toggle >}}
+
+이 식은 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$를 가중치로 하는 $\mathbf{x}$의 가중 평균이다. 이 식을 잘 살펴보면, $\mathbf{z}$를 고정했을 때 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$가 의미 있는 값을 가지는 모든 $\mathbf{x}$를 가중 평균한 값이 $\boldsymbol{\mu}_{\theta}^*(\mathbf{z})$가 된다는 것을 알 수 있다. 이것이 VAE가 흐릿한 결과물을 생성하는 근본적인 원인이다.
+
+### 한계 2. Posterior 근사의 한계
+
+이 문제는 앞에서 amortized inference를 설명할 때에도 언급했었다. 우리는 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$를 정규 분포 등의 단순한 분포로 정의해서 posterior $p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 근사하려고 하고 있다. 만약 posterior가 여러 개의 mode를 가지는 분포일 경우, 하나의 mode를 가지는 정규 분포로는 이를 충분히 설명할 수 없어 하나의 mode에만 집중하는 mode-seeking behavior가 일어난다.
+
+### 한계 3. Posterior collapse
+
+이 문제는 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$가 $\mathbf{z}$를 사용하지 않고도 데이터를 잘 모델링할 수 있을 만큼 표현력이 높을 때 발생한다. 즉 $p_{\theta}(\mathbf{x} \mid \mathbf{z}) \approx r(\mathbf{x})$인 $r$이 존재하고 이것이 $p_{\mathrm{data}}$에 가까우면 발생하는 문제이다. 이때 잠재 변수 $\mathbf{z}$는 $\mathbf{x}$와 독립이 되어 아무런 정보를 담지 않게 되는데, 이를 posterior collapse라고 한다.
+
+ELBO를 다시 살펴보자.
+
+$$
+\mathcal{L}(\phi, \theta; \mathbf{x}) = \mathbb{E}_{q_{\phi}(\mathbf{z} \mid \mathbf{x})}[\log p_{\theta}(\mathbf{x} \mid \mathbf{z})] - D_{\mathrm{KL}}(q_{\phi}(\mathbf{z} \mid \mathbf{x}) \| p(\mathbf{z}))
+$$
+
+$p_{\theta}$가 $\mathbf{z}$에 의존하지 않아도 첫 번째 항을 충분히 크게 만들 수 있다면 ($p_{\theta}(\mathbf{x} \mid \mathbf{z}) \approx r(\mathbf{x})$), reconstruction term은 $q_{\phi}$에 거의 영향을 받지 않는다. 이때 ELBO를 최대화하려면 두 번째 항인 KL divergence를 최소화해야 하는데, $D_{\mathrm{KL}}(q_{\phi}(\mathbf{z} \mid \mathbf{x}) \| p(\mathbf{z})) \geq 0$이고 등호는 $q_{\phi}(\mathbf{z} \mid \mathbf{x}) = p(\mathbf{z})$일 때 성립한다. 따라서 최적의 $q_{\phi}$는 $\mathbf{x}$를 무시하고 $q_{\phi}(\mathbf{z} \mid \mathbf{x}) = p(\mathbf{z})$로 수렴하게 된다.
+
+잠재 변수 $\mathbf{z}$를 활용하지 않더라도 어쨌든 데이터를 잘 생성할 수 있다면 무엇이 문제인가? 라는 생각이 들 수 있다. 우리가 latent variable model을 도입하면서 기대했던, 데이터의 구조를 잘 표현하는 잠재 변수를 얻지 못한다는 것이 문제이다. 지금까지 구체적으로 언급하지는 않았지만, 만약 잠재 변수가 데이터의 구조를 잘 표현하고 있다면 잠재 변수를 조작함으로써 우리가 원하는 성질을 가지는 데이터를 생성하는 conditional generation이 가능하다. 이 경우에는 controllable generation이라는 용어를 더 많이 사용한다. 잠재 변수가 의미 있는 정보를 담고 있지 않다면 controllable generation을 수행하기는 불가능하다.
+
 # 정리
 
 이 포스트에서는 이전 포스트에 이어 latent variable model을 살펴보았다. 먼저, 베이지안 추론을 이용해 latent variable model의 posterior를 다루려고 할 때 발생하는 세 가지 문제를 살펴보았다. 우선 MCMC를 버리고 variational Bayes를 채택해 문제점 3을 해결했고, amortized inference를 도입해 문제점 1을 해결했다. 이제 우리의 모델 $p_{\theta}$와 함께 posterior를 근사하는 $q_{\phi}$를 함께 학습시켜야 한다.
 
 그 이후, 서로 다른 목적 함수를 이용해 $\theta$와 $\phi$를 각각 최적화하는 wake-sleep algorithm을 살펴보았다. 다음으로 ELBO라는 하나의 목적 함수를 이용해 두 매개변수를 모두 최적화하는 VAE를 살펴보았다. ELBO를 통해 $\phi$를 최적화하는 과정에서 분산이 지나치게 커져 몬테 카를로 근사를 효율적으로 사용할 수 없는 문제가 발생했다. VAE에서는 이를 reparametrization trick으로 해결했다. 결과적으로, wake-sleep algorithm에서 지적했던 문제들이 모두 해결되었다.
 
-다음 포스트에서는 VAE의 문제점을 살펴보고, 이를 일부 극복하는 Hierarchical VAE (HVAE)에 대해 알아보자.
+한편, VAE에도 흐릿한 결과물, posterior 근사의 한계, posterior collapse라는 한계가 있다. 이 문제는 이후 diffusion model (그 중에서도 DDPM)을 살펴보기 전 설명할 HVAE (Hierarchical VAE)에서 일부 해결될 것이고, diffusion model을 위한 motivation을 제공할 것이다.
 
 {{< reflist >}}
 {{< refitem 1 >}}

@@ -9,7 +9,7 @@ draft: false
 
 잠재 변수(latent variable)을 사용하는 대표적인 모델인 variational autoencoder (VAE)에 대해 알아보자. VAE는 2013년 D. P. Kingma와 M. Welling이 개발했다{{< ref 1 >}}. D. P. Kingma는 Adam optimizer를 개발하기도 한 능력자이다{{< ref 2 >}}.
 
-VAE가 만들어진 맥락을 이해하기 위해, 확률 모델에 대한 전통적인 추론 알고리즘에서부터 출발하려고 한다. 첫 포스트에서는 E-M algorithm, MCMC, variational Bayes에 대해 간단히 알아볼 것이다. 두 번째 포스트에서는 amortized inference에 대해 알아보고, wake-sleep 알고리즘을 살펴본 뒤 본격적으로 VAE에 대해 알아볼 것이다. 마지막 포스트에서는 Hierarchical VAE (HVAE)를 살펴볼 것이다.
+VAE가 만들어진 맥락을 이해하기 위해, 확률 모델에 대한 전통적인 추론 알고리즘에서부터 출발하려고 한다. 첫 포스트에서는 E-M algorithm, MCMC, variational Bayes에 대해 간단히 알아볼 것이다. 두 번째 포스트에서는 amortized inference에 대해 알아보고, wake-sleep 알고리즘을 살펴본 뒤 본격적으로 VAE에 대해 알아볼 것이다.
 
 # Latent Variable Models
 
@@ -61,9 +61,9 @@ $$p_{\theta}(\mathbf{z}) = \mathcal{N}(\mathbf{z}; \mathbf{0}, \mathbf{I}), \qqu
 $p_{\theta}(\mathbf{z})$와 $p_{\theta}(\mathbf{x} \mid \mathbf{z})$는 단순한 정규 분포이지만, 이들을 연결해 주는 신경망 $\boldsymbol{\mu}_{\theta}(\mathbf{z})$와 $\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$ 덕분에 관측 데이터 $\mathbf{x}$의 복잡한 분포를 표현할 수 있다.
 
 {{< callout type="Note" >}}
-$\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$를 정규 분포의 공분산 행렬로 활용하기 위해서는 이 행렬이 positive definite이어야 하는데, 이 조건을 만족시키기는 번거롭다. 그래서 $\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$가 $d \times d$ 행렬 대신 $d$차원 벡터가 되도록 하고, $p_{\theta}(\mathbf{x} \mid \mathbf{z})$의 공분산으로 대각 행렬 $\mathop{\mathrm{diag}}(\exp(\boldsymbol{\Sigma}_{\theta}(\mathbf{z})))$를 사용하는 경우가 많다. (대각 원소는 각 차원의 분산이므로 양수여야 하기 때문에 $\exp$가 필요하다.)
+$\boldsymbol{\Sigma}_{\theta}(\mathbf{z})$를 정규 분포의 공분산 행렬로 활용하기 위해서는 이 행렬이 positive definite이어야 하는데, 이 조건을 만족시키기는 번거롭다. 그래서 신경망이 $d$차원 벡터 $\mathbf{s}_{\theta}(\mathbf{z})$를 출력하도록 하고, $p_{\theta}(\mathbf{x} \mid \mathbf{z})$의 공분산으로 대각 행렬 $\boldsymbol{\Sigma}_{\theta}(\mathbf{z}) = \mathrm{diag}(\exp(\mathbf{s}_{\theta}(\mathbf{z})))$를 사용하는 경우가 많다. (대각 원소는 각 차원의 분산이므로 양수여야 하기 때문에 $\exp$가 필요하다.)
 
-이렇게 대각 공분산 행렬을 사용하면 분포가 더 단순해진다. 구체적으로는, $\mathbf{x}$의 각 차원이 $\mathbf{z}$가 주어졌을 때 조건부 독립이라는 가정이 된다. 하지만 $\mathbf{x}$의 차원 간의 복잡한 의존 관계는 잠재 변수 $\mathbf{z}$와 신경망 $\boldsymbol{\mu}_{\theta}$, $\boldsymbol{\Sigma}_{\theta}$에 이미 녹아 있으므로 실제로 잘 작동한다.
+이렇게 대각 공분산 행렬을 사용하면 분포가 더 단순해진다. 구체적으로는, $\mathbf{x}$의 각 차원이 $\mathbf{z}$가 주어졌을 때 조건부 독립이라는 가정이 된다. 하지만 $\mathbf{x}$의 차원 간의 복잡한 의존 관계는 잠재 변수 $\mathbf{z}$와 신경망 $\boldsymbol{\mu}_{\theta}$, $\mathbf{s}_{\theta}$에 이미 녹아 있으므로 실제로 잘 작동한다.
 {{< /callout >}}
 
 ## Latent Variable Model의 목표
