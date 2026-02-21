@@ -265,7 +265,25 @@ $$
 
 Sleep phase에서는 $\theta$를 고정하고 $\phi$를 학습시킨다. 식 {{< eqref wake-phase >}}의 목적 함수를 $\phi$에 대해 최적화하는 것도 좋은 접근이다. 하지만 이렇게 하면 목적 함수에 $q_{\phi}$에 대한 기댓값이 들어 있게 되어 $\phi$에 대해 최적화하기 난감하다. 지금까지 우리는 이렇게 기댓값을 취하는 분포에 $\phi$가 들어 있을 때 이를 $\phi$에 대해 미분하기 위해 log-derivative trick을 사용했었다. 뒤에서 살펴볼 VAE에서는 reparametrization trick을 사용한다. 하지만 논문에서 사용한 생성 모델(Helmholtz machine)은 reparametrization trick을 적용할 수 있는 형태가 아니었고, log-derivative trick은 강화 학습에서 이미 알려져 있기는 했지만{{< ref 5 >}} 아직 이 분야와는 연결되지 않은 것으로 보인다.
 
-대신, sleep phase의 아이디어는 $p_{\theta}$에서 샘플링한 **가상의 데이터** $\tilde{\mathbf{x}}$를 이용해 다른 목적 함수를 최적화하는 것이다. 식 {{< eqref wake-phase-kl >}}에서 $\phi$가 등장하는 항은 첫 번째 KL divergence 뿐이다. 이 식이 최소화되려면 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$를 $p_{\theta}(\mathbf{z} \mid \mathbf{x})$에 최대한 가깝게 만들어야 한다는 것을 알 수 있다. $D_{\mathrm{KL}}(q_{\phi}(\mathbf{z} \mid \mathbf{x}) \| p_{\theta}(\mathbf{z} \mid \mathbf{x}))$를 최소화하는 것은 어렵지만, 두 분포의 위치를 바꾼 $D_{\mathrm{KL}}(p_{\theta}(\mathbf{z} \mid \mathbf{x}) \| q_{\phi}(\mathbf{z} \mid \mathbf{x}))$를 최소화하는 것은 가능하다. 다음 최적화 문제를 풀면 된다.
+식 {{< eqref wake-phase-kl >}}에서 $\phi$가 등장하는 항은 첫 번째 KL divergence 뿐이다. 이 식이 최소화되려면 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$를 $p_{\theta}(\mathbf{z} \mid \mathbf{x})$에 최대한 가깝게 만들어야 한다는 것을 알 수 있다. $D_{\mathrm{KL}}(q_{\phi}(\mathbf{z} \mid \mathbf{x}) \| p_{\theta}(\mathbf{z} \mid \mathbf{x}))$를 최소화하는 것은 어렵지만, 두 분포의 위치를 바꾼 $D_{\mathrm{KL}}(p_{\theta}(\mathbf{z} \mid \mathbf{x}) \| q_{\phi}(\mathbf{z} \mid \mathbf{x}))$를 최소화하는 것은 가능하다. 즉, 다음 최적화 문제를 풀고자 한다.
+
+$$
+\phi = \argmin_{\phi} \mathbb{E}_{\mathbf{x} \sim p_{\mathrm{data}}(\mathbf{x})} \left[ D_{\mathrm{KL}}(p_{\theta}(\mathbf{z} \mid \mathbf{x}) \| q_{\phi}(\mathbf{z} \mid \mathbf{x})) \right]
+$$
+
+KL divergence를 전개하면, 아래 식에서 두 번째 등호와 같이 $\phi$와 무관한 항 $\log p_{\theta}(\mathbf{z} \mid \mathbf{x})$를 무시할 수 있다. 하지만 바깥쪽 기댓값이 $p_{\mathrm{data}}(\mathbf{x})$에 대해 취해지고 있으므로, 안쪽의 $p_{\theta}(\mathbf{z} \mid \mathbf{x})$에서 샘플링하기 어렵다. Sleep phase의 아이디어는 $p_{\mathrm{data}}(\mathbf{x})$를 $p_{\theta}$에서 샘플링한 **가상의 데이터** $\tilde{\mathbf{x}} \sim p_{\theta}(\tilde{\mathbf{x}})$로 대체하는 것이다.
+
+$$
+\begin{align*}
+&\argmin_{\phi} \mathbb{E}_{{\mathbf{x}} \sim p_{\mathrm{data}}({\mathbf{x}})} \left[ D_{\mathrm{KL}}(p_{\theta}(\mathbf{z} \mid {\mathbf{x}}) \| q_{\phi}(\mathbf{z} \mid \tilde{{x}})) \right] \\
+= \, &\argmin_{\phi} \mathbb{E}_{{\mathbf{x}} \sim p_{\mathrm{data}}({\mathbf{x}})} \mathbb{E}_{\mathbf{z} \sim p_{\theta}(\mathbf{z} \mid {\mathbf{x}})} [\log p_{\theta}(\mathbf{z} \mid \mathbf{x}) - \log q_{\phi}(\mathbf{z} \mid {\mathbf{x}})]  \\
+= \, &\argmin_{\phi} \mathbb{E}_{{\mathbf{x}} \sim p_{\mathrm{data}}({\mathbf{x}})} \mathbb{E}_{\mathbf{z} \sim p_{\theta}(\mathbf{z} \mid {\mathbf{x}})} [- \log q_{\phi}(\mathbf{z} \mid {\mathbf{x}})]  \\
+\approx \, &\argmin_{\phi} \mathbb{E}_{\tilde{\mathbf{x}} \sim p_{\theta}(\tilde{\mathbf{x}})} \mathbb{E}_{\mathbf{z} \sim p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})} [- \log q_{\phi}(\mathbf{z} \mid \tilde{\mathbf{x}})]  \\
+= \, &\argmin_{\phi} \mathbb{E}_{\mathbf{z} \sim p_{\theta}(\mathbf{z})} \mathbb{E}_{\tilde{\mathbf{x}} \sim p_{\theta}(\mathbf{x} \mid \mathbf{z})} [- \log q_{\phi}(\mathbf{z} \mid \tilde{\mathbf{x}})]
+\end{align*}
+$$
+
+위 식 세 번째 등호에서는 $p_{\mathrm{data}}(\mathbf{x})$를 가상의 데이터의 분포 $p_{\theta}(\tilde{\mathbf{x}})$로 대체했다. 네 번째 등호에서는 $p_{\theta}(\tilde{\mathbf{x}}) p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}}) = p_{\theta}(\tilde{\mathbf{x}}, \mathbf{z}) = p_{\theta}(\mathbf{z}) p_{\theta}(\tilde{\mathbf{x}} \mid \mathbf{z})$임을 이용해 기댓값의 분포를 계산 가능한 형태로 바꾸었다. 따라서, sleep phase의 목적 함수는 다음과 같다.
 
 {{< eqlabel sleep-phase >}}
 $$
@@ -273,16 +291,6 @@ $$
 $$
 
 이 식에서는 기댓값을 취하는 분포가 $\theta$이므로, $\phi$에 대해 최적화하기 수월하다.
-이 최적화 문제가 KL divergence 최소화로 바뀌는 이유는 안쪽 기댓값에 $\phi$와 무관한 항 $\mathbb{E}_{\mathbf{z} \sim p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})} [\log p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})]$을 더하면 바로 알 수 있다. 아래 식의 첫 번째 등호에서는 $p_{\theta}(\mathbf{z}) p_{\theta}(\tilde{\mathbf{x}} \mid \mathbf{z}) = p_{\theta}(\tilde{\mathbf{x}}, \mathbf{z}) = p_{\theta}(\tilde{\mathbf{x}}) p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})$임을 이용해 기댓값의 분포를 바꾸었다.
-
-$$
-\begin{align*}
-&\argmin_{\phi} \mathbb{E}_{\mathbf{z} \sim p_{\theta}(\mathbf{z})} \mathbb{E}_{\tilde{\mathbf{x}} \sim p_{\theta}(\mathbf{x} \mid \mathbf{z})} [- \log q_{\phi}(\mathbf{z} \mid \tilde{\mathbf{x}})] \\
-= \, &\argmin_{\phi} \mathbb{E}_{\tilde{\mathbf{x}} \sim p_{\theta}(\tilde{\mathbf{x}})} \mathbb{E}_{\mathbf{z} \sim p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})} [- \log q_{\phi}(\mathbf{z} \mid \tilde{\mathbf{x}})]  \\
-= \, &\argmin_{\phi} \mathbb{E}_{\tilde{\mathbf{x}} \sim p_{\theta}(\tilde{\mathbf{x}})} \mathbb{E}_{\mathbf{z} \sim p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})} \left[\log \frac{p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}})}{q_{\phi}(\mathbf{z} \mid \tilde{\mathbf{x}})}\right] \\
-= \, &\argmin_{\phi} \mathbb{E}_{\tilde{\mathbf{x}} \sim p_{\theta}(\tilde{\mathbf{x}})} \left[ D_{\mathrm{KL}}(p_{\theta}(\mathbf{z} \mid \tilde{\mathbf{x}}) \| q_{\phi}(\mathbf{z} \mid \tilde{\mathbf{x}})) \right]
-\end{align*}
-$$
 
 최적화 문제를 푸는 방법은 다음과 같다. 먼저, $p_{\theta}(\mathbf{z})$에서 $M$개의 샘플 $\mathbf{z}^{(1)}$, $\cdots$, $\mathbf{z}^{(M)}$을 샘플링한다. 다음으로, 각 $m$에 대해 $p_{\theta}(\mathbf{x} \mid \mathbf{z}^{(m)})$에서 $\tilde{\mathbf{x}}^{(m)}$을 샘플링한다. 이제 목적 함수를 다음과 같이 몬테 카를로 근사할 수 있다.
 
@@ -492,31 +500,31 @@ $$
 \boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I}), \quad \mathbf{z} = \boldsymbol{\mu}_{\phi}(\mathbf{x}) + \boldsymbol{\sigma}_{\phi}(\mathbf{x}) \odot \boldsymbol{\epsilon}
 $$
 
-여기서 $\boldsymbol{\sigma}_{\phi}(\mathbf{x})$는 $\boldsymbol{\Sigma}_{\phi}(\mathbf{x})$의 대각 원소의 제곱근으로 이루어진 벡터이고, $\odot$은 원소별 곱셈이다. 이렇게 정의된 $\mathbf{z}$의 분포가 $\mathcal{N}(\boldsymbol{\mu}_{\phi}(\mathbf{x}), \boldsymbol{\Sigma}_{\phi}(\mathbf{x}))$와 동일하다는 것은 쉽게 확인할 수 있다.
+여기서 $\boldsymbol{\sigma}_{\phi}(\mathbf{x})$는 $\boldsymbol{\Sigma}_{\phi}(\mathbf{x})$의 대각 원소의 제곱근으로 이루어진 벡터이고, $\odot$은 원소별 곱셈이다. 이렇게 정의된 $\mathbf{z}$의 분포가 $\mathcal{N}(\boldsymbol{\mu}_{\phi}(\mathbf{x}), \boldsymbol{\Sigma}_{\phi}(\mathbf{x}))$와 동일하다는 것은 쉽게 확인할 수 있다. 앞으로 이 관계를 $\mathbf{z}_{\phi}(\boldsymbol{\epsilon}) = \boldsymbol{\mu}_{\phi}(\mathbf{x}) + \boldsymbol{\sigma}_{\phi}(\mathbf{x}) \odot \boldsymbol{\epsilon}$으로 표기하겠다. 이 표기는 $\mathbf{z}$가 $\phi$에 의존하는 결정론적 함수임을 명시적으로 보여 준다.
 
 이제 $\mathbf{z}$에 대한 기댓값이 주어지면 $\boldsymbol{\epsilon}$에 대한 기댓값으로 바꿀 수 있다. 아래 식에서 $f$는 임의의 함수이다.
 
 $$
-\mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid \mathbf{x})} [f(\mathbf{z})] = \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})} [f(\boldsymbol{\mu}_{\phi}(\mathbf{x}) + \boldsymbol{\sigma}_{\phi}(\mathbf{x}) \odot \boldsymbol{\epsilon})]
+\mathbb{E}_{\mathbf{z} \sim q_{\phi}(\mathbf{z} \mid \mathbf{x})} [f(\mathbf{z})] = \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})} [f(\mathbf{z}_{\phi}(\boldsymbol{\epsilon}))]
 $$
 
 오른쪽 식에서는 기댓값을 취하는 분포 $\mathcal{N}(\mathbf{0}, \mathbf{I})$가 $\phi$에 의존하지 않으므로, $\nabla_{\phi}$를 기댓값 안으로 넣을 수 있다.
 
 $$
-\nabla_{\phi} \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})} [f(\boldsymbol{\mu}_{\phi}(\mathbf{x}) + \boldsymbol{\sigma}_{\phi}(\mathbf{x}) \odot \boldsymbol{\epsilon})] = \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})} [\nabla_{\phi} f(\boldsymbol{\mu}_{\phi}(\mathbf{x}) + \boldsymbol{\sigma}_{\phi}(\mathbf{x}) \odot \boldsymbol{\epsilon})]
+\nabla_{\phi} \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})} [f(\mathbf{z}_{\phi}(\boldsymbol{\epsilon}))] = \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})} [\nabla_{\phi} f(\mathbf{z}_{\phi}(\boldsymbol{\epsilon}))]
 $$
 
 이를 ELBO에 적용하면, $\phi$에 대한 gradient는 다음과 같다. 위 식에서 $f(\mathbf{z}) = \log p_{\theta}(\mathbf{x}, \mathbf{z}) - \log q_{\phi}(\mathbf{z} \mid \mathbf{x})$로 놓은 것이다.
 $$
-\nabla_{\phi} J(\theta, \phi) = \mathbb{E}_{\mathbf{x} \sim p_{\mathrm{data}}(\mathbf{x})} \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})} \left[ \nabla_{\phi} \left( \log p_{\theta}(\mathbf{x}, \mathbf{z}) - \log q_{\phi}(\mathbf{z} \mid \mathbf{x}) \right) \right]
+\nabla_{\phi} J(\theta, \phi) = \mathbb{E}_{\mathbf{x} \sim p_{\mathrm{data}}(\mathbf{x})} \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})} \left[ \nabla_{\phi} \left( \log p_{\theta}(\mathbf{x}, \mathbf{z}_{\phi}(\boldsymbol{\epsilon})) - \log q_{\phi}(\mathbf{z}_{\phi}(\boldsymbol{\epsilon}) \mid \mathbf{x}) \right) \right]
 $$
-여기서 $\mathbf{z} = \boldsymbol{\mu}_{\phi}(\mathbf{x}) + \boldsymbol{\sigma}_{\phi}(\mathbf{x}) \odot \boldsymbol{\epsilon}$이다. $\nabla_{\phi}$는 $\mathbf{z}$를 통해 간접적으로, 그리고 $\log q_{\phi}$를 통해 직접적으로 $\phi$에 작용한다. 기댓값 안의 식 전체에 gradient가 씌워져 있는데, 이 값은 backpropagation 알고리즘으로 계산할 수 있다. (그래서 더 이상 전개하지 않아도 된다.)
+$\nabla_{\phi}$는 $\mathbf{z}_{\phi}(\boldsymbol{\epsilon})$를 통해 간접적으로, 그리고 $\log q_{\phi}$를 통해 직접적으로 $\phi$에 작용한다. 기댓값 안의 식 전체에 gradient가 씌워져 있는데, 이 값은 backpropagation 알고리즘으로 계산할 수 있다. (그래서 더 이상 전개하지 않아도 된다.)
 
-몬테 카를로 추정량은 $\theta$의 경우와 마찬가지이다. $\boldsymbol{\epsilon}^{(n, k)} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$에서 샘플링한 뒤 $\mathbf{z}^{(n, k)} = \boldsymbol{\mu}_{\phi}(\mathbf{x}^{(n)}) + \boldsymbol{\sigma}_{\phi}(\mathbf{x}^{(n)}) \odot \boldsymbol{\epsilon}^{(n, k)}$으로 계산하면 된다.
+몬테 카를로 추정량은 $\theta$의 경우와 마찬가지이다. $\boldsymbol{\epsilon}^{(n, k)} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$에서 샘플링한 뒤 $\mathbf{z}^{(n, k)} = \mathbf{z}_{\phi}(\boldsymbol{\epsilon}^{(n, k)}) = \boldsymbol{\mu}_{\phi}(\mathbf{x}^{(n)}) + \boldsymbol{\sigma}_{\phi}(\mathbf{x}^{(n)}) \odot \boldsymbol{\epsilon}^{(n, k)}$으로 계산하면 된다.
 
 {{< eqlabel grad-phi-with-reparametrization >}}
 $$
-\nabla_{\phi} J(\theta, \phi) \approx \frac{1}{NK} \sum_{n=1}^{N} \sum_{k=1}^{K} \nabla_{\phi} \left( \log p_{\theta}(\mathbf{x}^{(n)}, \mathbf{z}^{(n, k)}) - \log q_{\phi}(\mathbf{z}^{(n, k)} \mid \mathbf{x}^{(n)}) \right)
+\nabla_{\phi} J(\theta, \phi) \approx \frac{1}{NK} \sum_{n=1}^{N} \sum_{k=1}^{K} \nabla_{\phi} \left( \log p_{\theta}(\mathbf{x}^{(n)}, \mathbf{z}_{\phi}(\boldsymbol{\epsilon}^{(n, k)})) - \log q_{\phi}(\mathbf{z}_{\phi}(\boldsymbol{\epsilon}^{(n, k)}) \mid \mathbf{x}^{(n)}) \right)
 $$
 
 이 추정량의 분산은 식 {{< eqref grad-phi-with-log-derivative >}}보다 작다.
