@@ -307,7 +307,7 @@ Wake-sleep algorithm은 직관적이지만 두 가지 문제가 있다. 먼저, 
 
 이어서 살펴볼 VAE는 이 두 문제를 모두 해결한다.
 
-# Variational Autoencoder
+# Variational Autoencoders
 
 드디어 VAE를 살펴볼 차례이다{{< ref 1 >}}. VAE의 핵심은 두 가지이다.
 
@@ -772,7 +772,7 @@ $$
 
 ## VAE의 한계
 
-ELBO를 목적 함수로 사용하는 VAE는 이론적으로 매우 우아하다. 하지만 몇 가지 근본적인 한계가 있다{{< ref 3 >}}.
+ELBO를 목적 함수로 사용하는 VAE는 이론적으로 매우 우아하지만 몇 가지 한계가 있다{{< ref 3 >}}.
 
 ### 한계 1. 흐릿한 결과물
 
@@ -832,6 +832,10 @@ $$
 {{< /toggle >}}
 
 이 식은 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$를 가중치로 하는 $\mathbf{x}$의 가중 평균이다. 이 식을 잘 살펴보면, $\mathbf{z}$를 고정했을 때 $q_{\phi}(\mathbf{z} \mid \mathbf{x})$가 의미 있는 값을 가지는 모든 $\mathbf{x}$를 가중 평균한 값이 $\boldsymbol{\mu}_{\theta}^*(\mathbf{z})$가 된다는 것을 알 수 있다. 이것이 VAE가 흐릿한 결과물을 생성하는 근본적인 원인이다.
+
+{{< callout type="Note" >}}
+이 문제는 VAE 자체의 구조적인 문제가 아니라, $p_{\theta}(\mathbf{x} \mid \mathbf{z})$를 정규 분포로 모델링한 것에서 비롯된 문제이다. 다른 형태의 분포로 정의하면 이 문제를 완화할 수 있다.
+{{< /callout >}}
 
 ### 한계 2. Posterior 근사의 한계
 
